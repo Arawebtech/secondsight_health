@@ -394,8 +394,6 @@
 
         // Clear referral sessions
         unset($_SESSION['coupon']);
-        unset($_SESSION['product_ref']);
-        unset($_SESSION['ref_user_id']);
 
         $_SESSION['order_success'] = true;
 
@@ -758,7 +756,7 @@
                                             id="payment_online" required checked>
                                         <label for="payment_online" class="ms-2">Online Payment (PayU)</label>
                                     </li>
-                                    <li class="payment-method">
+                                     <li class="payment-method">
                                         <input type="radio" class="input-radio" name="payment_method" value="cod"
                                             id="payment_cod" required>
                                         <label for="payment_cod" class="ms-2">Cash On Delivery</label>

@@ -1,38 +1,7 @@
 <?php
+ob_start();
 include("admin/inc/config.php");
-require_once 'vendor/autoload.php';
-
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\IOFactory;
-
-// Common label function
-function addLabelBlockFixed($section, $ship, $fullAddress, $style) {
-    // Table to keep both labels on one page
-    $table = $section->addTable([
-        'borderSize' => 0,
-        'borderColor' => 'FFFFFF',
-        'cellMargin' => 100,
-        'alignment' => 'left'
-    ]);
-
-    // First row: top label
-    $row = $table->addRow();
-    $cell = $row->addCell(8000, ['valign' => 'top']); // top of page
-    $cell->addText("To", $style);
-    $cell->addText("Name: {$ship['name']}", $style);
-    $cell->addText("Address: $fullAddress", $style);
-    $cell->addText("Mobile: {$ship['phone_no']}", $style);
-
-    // Second row: bottom label
-    $row = $table->addRow(6000); // set fixed height to push content to bottom
-    $cell = $row->addCell(8000, ['valign' => 'bottom']); // bottom of page
-    $cell->addText("To", $style);
-    $cell->addText("Name: {$ship['name']}", $style);
-    $cell->addText("Address: $fullAddress", $style);
-    $cell->addText("Mobile: {$ship['phone_no']}", $style);
-}
-
-
+include_once('TCPDF-main/tcpdf.php');
 
 function fetchOrderAndShip($con, $order_id) {
     // Fetch order
@@ -64,18 +33,16 @@ function fetchOrderAndShip($con, $order_id) {
     return [$ship, $fullAddress, $order];
 }
 
-// Initialize Word
-$phpWord = new PhpWord();
-$section = $phpWord->addSection([
-    'paperSize'   => 'A5',
-    'orientation' => 'portrait',
-    'marginLeft'   => 600,
-    'marginRight'  => 600,
-    'marginTop'    => 600,
-    'marginBottom' => 600
-]);
-
-$style = ['size' => 14, 'name' => 'Calibri', 'bold' => true];
+// Initialize TCPDF
+$pdf = new TCPDF('P', 'mm', 'A5', true, 'UTF-8', false);
+$pdf->SetCreator(PDF_CREATOR);
+$pdf->SetAuthor('Second Sight Foundation');
+$pdf->SetTitle('Shipping Labels');
+$pdf->SetMargins(10, 10, 10);
+$pdf->SetAutoPageBreak(TRUE, 10);
+$pdf->setPrintHeader(false);
+$pdf->setPrintFooter(false);
+$pdf->SetFont('helvetica', '', 10);
 
 // ---- Single Order ----
 if (isset($_POST['download_label']) && isset($_POST['order_id'])) {
@@ -85,43 +52,80 @@ if (isset($_POST['download_label']) && isset($_POST['order_id'])) {
 
     list($ship, $fullAddress, $order) = $data;
 
-    addLabelBlockFixed($section, $ship, $fullAddress, $style);
+    $pdf->AddPage();
+    
+    $html = '
+    <table cellpadding="5" style="font-family: helvetica; font-size: 14pt; font-weight: bold; width: 100%;">
+        <tr>
+            <td height="85" valign="top" style="border-bottom: 1px dashed #666;">
+                <span style="font-size: 16pt;">To</span><br>
+                Name: ' . htmlspecialchars($ship['name']) . '<br>
+                Address: ' . htmlspecialchars($fullAddress) . '<br>
+                Mobile: ' . htmlspecialchars($ship['phone_no']) . '
+            </td>
+        </tr>
+        <tr>
+            <td height="85" valign="bottom">
+                <span style="font-size: 16pt;">To</span><br>
+                Name: ' . htmlspecialchars($ship['name']) . '<br>
+                Address: ' . htmlspecialchars($fullAddress) . '<br>
+                Mobile: ' . htmlspecialchars($ship['phone_no']) . '
+            </td>
+        </tr>
+    </table>';
+    
+    $pdf->writeHTML($html, true, false, true, false, '');
 
-
-    $fileName = "Shipping_Label_{$order['order_id']}.docx";
+    $fileName = "Shipping_Label_{$order['order_id']}.pdf";
 }
 
 // ---- Multiple Orders ----
 elseif (isset($_POST['download_labels_bulk']) && !empty($_POST['order_ids'])) {
     $orderIds = $_POST['order_ids'];
-    $total = count($orderIds);
-    $current = 0;
 
     foreach ($orderIds as $order_id) {
-        $current++;
         $data = fetchOrderAndShip($con, $order_id);
         if (!$data) continue;
 
         list($ship, $fullAddress, $order) = $data;
 
-       addLabelBlockFixed($section, $ship, $fullAddress, $style);
-
-        // Only add page break if not the last order
-        if ($current < $total) {
-            $section->addPageBreak();
-        }
+        $pdf->AddPage();
+        
+        $html = '
+        <table cellpadding="5" style="font-family: helvetica; font-size: 14pt; font-weight: bold; width: 100%;">
+            <tr>
+                <td height="85" valign="top" style="border-bottom: 1px dashed #666;">
+                    <span style="font-size: 16pt;">To</span><br>
+                    Name: ' . htmlspecialchars($ship['name']) . '<br>
+                    Address: ' . htmlspecialchars($fullAddress) . '<br>
+                    Mobile: ' . htmlspecialchars($ship['phone_no']) . '
+                </td>
+            </tr>
+            <tr>
+                <td height="85" valign="bottom">
+                    <span style="font-size: 16pt;">To</span><br>
+                    Name: ' . htmlspecialchars($ship['name']) . '<br>
+                    Address: ' . htmlspecialchars($fullAddress) . '<br>
+                    Mobile: ' . htmlspecialchars($ship['phone_no']) . '
+                </td>
+            </tr>
+        </table>';
+        
+        $pdf->writeHTML($html, true, false, true, false, '');
     }
 
-    $fileName = "Shipping_Labels_Bulk.docx";
+    $fileName = "Shipping_Labels_Bulk.pdf";
 } else {
     die("❌ No order selected.");
 }
 
 // ---- Output ----
-header("Content-Description: File Transfer");
-header('Content-Disposition: attachment; filename="' . $fileName . '"');
-header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+ini_set('display_errors', 0);
 
-$writer = IOFactory::createWriter($phpWord, 'Word2007');
-$writer->save("php://output");
+if (ob_get_length()) {
+    ob_end_clean();
+}
+
+// Output PDF as download
+$pdf->Output($fileName, 'D');
 exit();

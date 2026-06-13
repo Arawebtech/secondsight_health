@@ -11,8 +11,8 @@
       <!-- Column 1: Logo and About -->
       <div class="col-md-3 col-12">
         <div class="d-flex align-items-center mb-3">
-            <a href="<?= $base_url; ?>index.php" class="text-decoration-none">
-          <img src="<?= $base_url; ?>assets/images/footerlogo.webp" alt="Logo" style="width: 100px; height: auto;">
+            <a href="<?php echo $base_url; ?>index.php" class="text-decoration-none">
+          <img src="<?php echo $base_url; ?>assets/images/footerlogo.webp" alt="Logo" style="width: 100px; height: auto;">
           </a>
           <div class="ms-2">
             <h6 class="fw-bold m-0" style="font-size: 18px;">Second Sight<br>Foundation</h6>
@@ -47,7 +47,7 @@
       <div class="col-md-3 col-6">
         <h6 class="fw-bold mb-2 mt-md-4 mt-1" style="font-size: 19px;">Useful links</h6>
         <div style="width: 50px; border-bottom: 1px solid #ffcc00; margin-bottom: 1.5rem;"></div>
-        <div class="small mb-2"><a href="https://secondsightfoundation.com/courses.php" class="text-white text-decoration-none" style="line-height: 1.7; font-size: 16px;">Courses</a></div>
+        <!-- <div class="small mb-2"><a href="https://secondsightfoundation.com/courses.php" class="text-white text-decoration-none" style="line-height: 1.7; font-size: 16px;">Courses</a></div> -->
         <div class="small mb-2"><a href="https://secondsightfoundation.com/teamlist.php" class="text-white text-decoration-none" style="line-height: 1.7; font-size: 16px;">Our Team</a></div>
         <div class="small mb-2"><a href="https://secondsightfoundation.com/view_gallery.php" class="text-white text-decoration-none" style="line-height: 1.7; font-size: 16px;">View Gallery</a></div>
         <!--<div class="small mb-2"><a href="blog.php" class="text-white text-decoration-none" style="line-height: 1.7; font-size: 16px;">Blog</a></div>-->
@@ -307,14 +307,14 @@
 
 
 <!-- Cart Pop-up -->
-<div id="cartPopup" 
+<div id="cartPopup"
      class="position-fixed top-0 end-0 bg-white shadow-lg border-start rounded-start"
      style="width: 370px; height: 100vh; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease;">
-  
+
   <!-- Cart Header -->
   <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
     <span>
-      <i class="fas fa-shopping-cart me-2"></i> 
+      <i class="fas fa-shopping-cart me-2"></i>
       Your Items (<span id="itemCount">0</span>)
     </span>
     <button type="button" class="btn-close" onclick="closeCartPopup()" aria-label="Close"></button>
@@ -322,21 +322,21 @@
 
   <!-- Cart Content -->
   <div class="p-3 d-flex flex-column justify-content-between" style="height: calc(100% - 56px);">
-    
+
     <!-- 🛒 Cart Items -->
     <div id="cartItemsContainer" class="flex-grow-1 overflow-auto pe-1"></div>
-    
+
     <!-- 🧾 Subtotal & Actions -->
     <div>
-      <div id="cartSubtotal" 
+      <div id="cartSubtotal"
            class="d-flex justify-content-between align-items-center bg-light border rounded px-3 py-2 mb-3">
         <span class="fw-semibold text-muted">Subtotal</span>
         <span class="fw-bold fs-5 text-dark">₹0</span>
       </div>
-      <a href="<?= $base_url; ?>cart.php" class="btn btn-gradient fw-bold w-100 mb-2">
+      <a href="<?php echo $base_url; ?>cart.php" class="btn btn-gradient fw-bold w-100 mb-2">
         View Cart
       </a>
-      <a href="<?= $base_url; ?>checkout.php" class="btn btn-gradient fw-bold w-100">
+      <a href="<?php echo $base_url; ?>checkout.php" class="btn btn-gradient fw-bold w-100">
         Proceed to Checkout
       </a>
     </div>
@@ -401,66 +401,66 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <script>
-  const BASE_URL = "<?= $base_url; ?>";
+  const BASE_URL = "<?php echo $base_url; ?>";
 </script>
 
 <!--  Swiper JS -->
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <!-- JavaScript Logic -->
-<script src="<?= $base_url; ?>assets/js/front-end.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/front-end.js"></script>
 
 <!-- latest jquery-->
-<script src="<?= $base_url; ?>assets/js/jquery-3.6.0.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/jquery-3.6.0.min.js"></script>
 
 <!-- jquery ui-->
-<script src="<?= $base_url; ?>assets/js/jquery-ui.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/jquery-ui.min.js"></script>
 
 <!-- Bootstrap js-->
-<script src="<?= $base_url; ?>assets/js/bootstrap/bootstrap.bundle.min.js"></script>
-<script src="<?= $base_url; ?>assets/js/bootstrap/bootstrap-notify.min.js"></script>
-<script src="<?= $base_url; ?>assets/js/bootstrap/popper.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/bootstrap/bootstrap-notify.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/bootstrap/popper.min.js"></script>
 
 <!-- feather icon js-->
-<script src="<?= $base_url; ?>assets/js/feather/feather.min.js"></script>
-<script src="<?= $base_url; ?>assets/js/feather/feather-icon.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/feather/feather.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/feather/feather-icon.js"></script>
 
 <!-- Lazyload Js -->
-<script src="<?= $base_url; ?>assets/js/lazysizes.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/lazysizes.min.js"></script>
 
 <!-- Slick js-->
-<script src="<?= $base_url; ?>assets/js/slick/slick.js"></script>
-<script src="<?= $base_url; ?>assets/js/slick/slick-animation.min.js"></script>
-<script src="<?= $base_url; ?>assets/js/custom-slick-animated.js"></script>
-<script src="<?= $base_url; ?>assets/js/slick/custom_slick.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/slick/slick.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/slick/slick-animation.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/custom-slick-animated.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/slick/custom_slick.js"></script>
 
 <!-- Price Range Js -->
-<script src="<?= $base_url; ?>assets/js/ion.rangeSlider.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/ion.rangeSlider.min.js"></script>
 
 <!-- sidebar open js -->
-<script src="<?= $base_url; ?>assets/js/filter-sidebar.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/filter-sidebar.js"></script>
 
 <!-- Quantity js -->
-<script src="<?= $base_url; ?>assets/js/quantity-2.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/quantity-2.js"></script>
 
 <!-- Zoom Js -->
-<script src="<?= $base_url; ?>assets/js/jquery.elevatezoom.js"></script>
-<script src="<?= $base_url; ?>assets/js/zoom-filter.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/jquery.elevatezoom.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/zoom-filter.js"></script>
 
 <!-- Sticky-bar js -->
-<script src="<?= $base_url; ?>assets/js/sticky-cart-bottom.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/sticky-cart-bottom.js"></script>
 
 <!-- Timer Js -->
-<script src="<?= $base_url; ?>assets/js/timer1.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/timer1.js"></script>
 
 <!-- WOW js -->
-<script src="<?= $base_url; ?>assets/js/wow.min.js"></script>
-<script src="<?= $base_url; ?>assets/js/custom-wow.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/wow.min.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/custom-wow.js"></script>
 
 <!-- script js -->
-<script src="<?= $base_url; ?>assets/js/script.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/script.js"></script>
 
 <!-- theme setting js -->
-<script src="<?= $base_url; ?>assets/js/theme-setting.js"></script>
+<script src="<?php echo $base_url; ?>assets/js/theme-setting.js"></script>
 
 
 </body>

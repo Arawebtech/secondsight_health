@@ -1,6 +1,6 @@
 <?php
 error_reporting(0);
-include('admin/include/db_config.php');
+include('user-admin/include/db_config.php');
 
 $id_param = isset($_GET['id']) ? $_GET['id'] : '';
 $id = 0;

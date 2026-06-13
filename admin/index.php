@@ -1,116 +1,240 @@
-<?php
-error_reporting(0);
-session_start();
-include('include/db_config.php');
-include("Classes/users.class.php");
-$userdata = new users();
+<?php require_once('header.php'); ?>
 
-if (isset($_POST['submit']) and $_POST['submit'] == 'Sign in') {
-  $phone = $_POST['username'];
-  $password = $_POST['password'];
-  
-  $result_user = $userdata->userLogin($phone, $password);
-  $count_user = $result_user->num_rows;
-  
-  if ($count_user > 0) {
-    $row = mysqli_fetch_object($result_user);
-    $_SESSION['username'] = $row;
-    echo "<script>window.open('dashboard.php','_self')</script>";
-  } else {
-    $error = '<div class="alert alert-danger" role="alert">Username or password wrong.</div>';
-  }
-}
+<section class="content-header">
+	<h1>Dashboard</h1>
+</section>
+
+<?php
+$statement = $pdo->prepare("SELECT * FROM tbl_top_category");
+$statement->execute();
+$total_top_category = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_mid_category");
+$statement->execute();
+$total_mid_category = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_end_category");
+$statement->execute();
+$total_end_category = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_product");
+$statement->execute();
+$total_product = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_user WHERE status='Active'");
+$statement->execute();
+$total_active_user = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_user WHERE status='Inactive'");
+$statement->execute();
+$total_inactive_user = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_shipping_cost");
+$statement->execute();
+$available_shipping = $statement->rowCount();
+
+/*$statement = $pdo->prepare("SELECT * FROM tbl_payment WHERE payment_status=?");
+$statement->execute(array('Completed'));
+$total_order_completed = $statement->rowCount();
+*/
+$statement = $pdo->prepare("SELECT * FROM tbl_payment WHERE payment_status=?");
+$statement->execute(array('Completed'));
+$total_shipping_completed = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_order WHERE order_status=?");
+$statement->execute(array('Pending'));
+$total_order_pending = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_order WHERE order_status=?");
+$statement->execute(array('Accepted'));
+$total_order_complete_shipping_pending = $statement->rowCount();
+
+$statement = $pdo->prepare("SELECT * FROM tbl_payout_requests WHERE status=?");
+$statement->execute(array('Pending'));
+$total_payout_pending = $statement->rowCount();
 ?>
 
-<!DOCTYPE html>
-<html>
+<section class="content">
+<div class="row">
+            <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-primary">
+                <div class="inner">
+                  <h3><?php echo $total_product; ?></h3>
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Diamond Furniture</title>
-    <link rel="icon" type="image/png" sizes="192x192" href="../assets/imgs/fab.png">
-    <!--<link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicon.jpg">-->
-    
-    <!-- Tell the browser to be responsive to screen width -->
-    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-
-    <!-- Bootstrap 3.3.7 -->
-    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="bower_components/font-awesome/css/font-awesome.min.css">
-    <!-- Ionicons -->
-    <link rel="stylesheet" href="bower_components/Ionicons/css/ionicons.min.css">
-    <!-- Theme style -->
-    <link rel="stylesheet" href="dist/css/AdminLTE.min.css">
-    <!-- iCheck -->
-    <link rel="stylesheet" href="plugins/iCheck/square/blue.css">
-    
-
- <!--<link rel="icon" href="https://arawebtechnologies.in/images/header-logo.png" type="image/x-icon">-->
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
-</head>
-
-<body class="hold-transition login-page">
-    <div class="login-box" style="margin: 5% auto;">
-        <div class="login-logo">
-            <img src="../assets/imgs/head-logo.png" height="100px;" width="300px">
-            <!--<a href="#"><b>IEC </b>PORTAL </a>-->
-        </div>
-        <!-- /.login-logo -->
-        <div class="login-box-body">
-            <p class="login-box-msg">Sign in to start your session</p>
-            <?php if (isset($error)) {
-        echo $error;
-      } ?>
-            <form method="post">
-                <div class="form-group has-feedback">
-                    <input type="text" name="username" class="form-control" placeholder="Username">
-                    <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
+                  <p>Products</p>
                 </div>
-                <div class="form-group has-feedback">
-                    <input type="password" name="password" class="form-control" placeholder="Password">
-                    <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                <div class="icon">
+                  <i class="ionicons ion-android-cart"></i>
                 </div>
-                <div class="row">
-                    <div class="col-xs-8">
-                        <div class="checkbox icheck">
-                            <label>
-                                <!--<input type="checkbox"> Remember Me-->
-                            </label>
-                        </div>
-                    </div>
-                    <!-- /.col -->
-                    <div class="col-xs-4">
-                        <!--<button type="submit" class="btn btn-primary btn-block btn-flat">Sign In</button>-->
-                        <input type="submit" class="btn btn-primary btn-block btn-flat" name="submit" value="Sign in">
-                    </div>
-                    <!-- /.col -->
+                
+              </div>
+            </div>
+            <!-- ./col -->
+            <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-maroon">
+                <div class="inner">
+                  <h3><?php echo $total_order_pending; ?></h3>
+
+                  <p>Pending Orders</p>
                 </div>
-            </form>
-            <a href="forgot-password.php">Forgot Password</a><br>
-            <!--<a href="register.html" class="text-center">Register a new membership</a>-->
-        </div>
-        <!-- /.login-box-body -->
-    </div>
-    <!-- /.login-box -->
+                <div class="icon">
+                  <i class="ionicons ion-clipboard"></i>
+                </div>
+                
+              </div>
+            </div>
+            <!-- ./col -->
+            <!-- <div class="col-lg-3 col-xs-6">
+              <div class="small-box bg-green">
+                <div class="inner">
+                  <h3><?php echo $total_order_completed; ?></h3>
 
-    <!-- jQuery 3 -->
-    <script src="bower_components/jquery/dist/jquery.min.js"></script>
-    <!-- Bootstrap 3.3.7 -->
-    <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-    <!-- iCheck -->
-    <script src="plugins/iCheck/icheck.min.js"></script>
-    <script>
-    $(function() {
-        $('input').iCheck({
-            checkboxClass: 'icheckbox_square-blue',
-            radioClass: 'iradio_square-blue',
-            increaseArea: '20%' // optional
-        });
-    });
-    </script>
-</body>
+                  <p>Completed Orders</p>
+                </div>
+                <div class="icon">
+                  <i class="ionicons ion-android-checkbox-outline"></i>
+                </div>
+               
+              </div>
+            </div> -->
+            <!-- ./col -->
+            <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-aqua">
+                <div class="inner">
+                  <h3><?php echo $total_shipping_completed; ?></h3>
 
-</html>
+                  <p>Completed Shipping</p>
+                </div>
+                <div class="icon">
+                  <i class="ionicons ion-checkmark-circled"></i>
+                </div>
+                
+              </div>
+            </div>
+			<!-- ./col -->
+			
+			<div class="col-lg-3 col-xs-6">
+				<!-- small box -->
+				<div class="small-box bg-orange">
+				  <div class="inner">
+					<h3><?php echo $total_order_complete_shipping_pending; ?></h3>
+  
+					<p>Accepted Orders</p>
+				  </div>
+				  <div class="icon">
+					<i class="ionicons ion-load-a"></i>
+				  </div>
+				  
+				</div>
+			  </div>
+
+			  <div class="col-lg-3 col-xs-6">
+				<!-- small box -->
+				<div class="small-box bg-red">
+				  <div class="inner">
+					<h3><?php echo $total_active_user; ?></h3>
+  
+					<p>Active Users</p>
+				  </div>
+				  <div class="icon">
+					<i class="ionicons ion-person-stalker"></i>
+				  </div>
+				  
+				</div>
+			  </div>
+
+			  <div class="col-lg-3 col-xs-6">
+				<!-- small box -->
+				<div class="small-box bg-yellow">
+				  <div class="inner">
+					<h3><?php echo $total_inactive_user; ?></h3>
+  
+					<p>Inactive Users</p>
+				  </div>
+				  <div class="icon">
+					<i class="ionicons ion-person-add"></i>
+				  </div>
+				  
+				</div>
+			  </div>
+
+			  <div class="col-lg-3 col-xs-6">
+				<!-- small box -->
+				<div class="small-box bg-teal">
+				  <div class="inner">
+					<h3><?php echo $available_shipping; ?></h3>
+  
+					<p>Available Shippings</p>
+				  </div>
+				  <div class="icon">
+					<i class="ionicons ion-location"></i>
+				  </div>
+				  
+				</div>
+			  </div>
+
+			  <div class="col-lg-3 col-xs-6">
+				<!-- small box -->
+				<div class="small-box bg-maroon">
+				  <div class="inner">
+					<h3><?php echo $total_payout_pending; ?></h3>
+  
+					<p>Pending Payouts</p>
+				  </div>
+				  <div class="icon">
+					<i class="fa fa-hand-holding-usd"></i>
+				  </div>
+				  <a href="payout-requests.php" class="small-box-footer">View Details <i class="fa fa-arrow-circle-right"></i></a>
+				</div>
+			  </div>
+
+			  <!-- <div class="col-lg-3 col-xs-6">
+				<div class="small-box bg-olive">
+				  <div class="inner">
+					<h3><?php echo $total_top_category; ?></h3>
+  
+					<p>Top Categories</p>
+				  </div>
+				  <div class="icon">
+					<i class="ionicons ion-arrow-up-b"></i>
+				  </div>
+				  
+				</div>
+			  </div> -->
+
+			  <!-- <div class="col-lg-3 col-xs-6">
+				<div class="small-box bg-blue">
+				  <div class="inner">
+					<h3><?php echo $total_mid_category; ?></h3>
+  
+					<p>Mid Categories</p>
+				  </div>
+				  <div class="icon">
+					<i class="ionicons ion-android-menu"></i>
+				  </div>
+				  
+				</div>
+			  </div> -->
+
+			 <!--  <div class="col-lg-3 col-xs-6">
+				<div class="small-box bg-maroon">
+				  <div class="inner">
+					<h3><?php echo $total_end_category; ?></h3>
+  
+					<p>End Categories</p>
+				  </div>
+				  <div class="icon">
+					<i class="ionicons ion-arrow-down-b"></i>
+				  </div>
+				  
+				</div>
+			  </div> -->
+
+		  </div>
+		  
+</section>
+
+<?php require_once('footer.php'); ?>

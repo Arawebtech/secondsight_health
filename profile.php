@@ -428,17 +428,19 @@ if ($result_coupons) {
                                                 foreach ($assigned_coupons as $uc) {
                                                     $code = $uc['coupon_code'] ?: '<i>URL Only</i>';
                                                     $query_cond = "1=1";
-                                                    if (!empty($uc['coupon_code'])) {
-                                                        $query_cond = "LOWER(applied_coupon) = LOWER('{$uc['coupon_code']}')";
+                                                    if (!empty($uc['coupon_code']) && !empty($uc['p_id'])) {
+                                                        $query_cond = "(LOWER(o.applied_coupon) = LOWER('{$uc['coupon_code']}') OR o.p_id = '{$uc['p_id']}')";
+                                                    } elseif (!empty($uc['coupon_code'])) {
+                                                        $query_cond = "LOWER(o.applied_coupon) = LOWER('{$uc['coupon_code']}')";
                                                     } elseif (!empty($uc['p_id'])) {
-                                                        $query_cond = "p_id = '{$uc['p_id']}'";
+                                                        $query_cond = "o.p_id = '{$uc['p_id']}'";
                                                     }
                                                     
-                                                    $q = mysqli_query($con, "SELECT SUM(no_of_item) as qty, SUM(p_actual_price * no_of_item) as val FROM tbl_order WHERE $query_cond AND order_status = 'Success' AND commission_user_id = '$user_id'");
+                                                    $q = mysqli_query($con, "SELECT SUM(o.no_of_item) as qty, SUM(o.p_actual_price * o.no_of_item) as val, SUM(ac.commission_amount) as earn FROM tbl_order o JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id WHERE $query_cond AND o.order_status = 'Success' AND ac.user_id = '$user_id'");
                                                     $d = mysqli_fetch_assoc($q);
                                                     $s_val = (float) ($d['val'] ?? 0);
                                                     $s_qty = (int) ($d['qty'] ?? 0);
-                                                    $s_earn = ($s_val * (float) $uc['percentage']) / 100;
+                                                    $s_earn = (float) ($d['earn'] ?? 0);
 
                                                     // Generate Link with Priority
                                                     $final_p_url = $base_url;
