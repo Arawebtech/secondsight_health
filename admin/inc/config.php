@@ -24,8 +24,10 @@ date_default_timezone_set('Asia/Kolkata');
 // ==============================
 // define("BASE_URL", "http://localhost/araweb/health/");
 
-$base_url = "https://ssfhealth.in/";
+
+define("BASE_URL", "https://ssfhealth.in/");
 define("ADMIN_URL", BASE_URL . "admin/");
+
 
 // ==============================
 // 🗄️ DATABASE (LIVE)
