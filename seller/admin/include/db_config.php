@@ -1,65 +1,41 @@
-<?php
 
-// ==============================
-// 🔧 DEBUG MODE (CHANGE HERE)
-// ==============================
-define('DEBUG', true); // true = ON, false = OFF
+  <?php
 
-if (DEBUG) {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-} else {
-    error_reporting(0);
-    ini_set('display_errors', 0);
-}
+    $servername = "localhost";
 
-// ==============================
-// 🌍 TIME ZONE
-// ==============================
-date_default_timezone_set('Asia/Kolkata');
+    /* First Database */
+    // $username   = "root";
+    // $password   = "";
+    // $dbname     = "secondside_seller";
 
-// ==============================
-// 🌐 BASE URL (FIXED - IMPORTANT)
-// ==============================
-// define("BASE_URL", "http://localhost/araweb/secondsite-in/");
-// define("ADMIN_URL", BASE_URL . "admin/");
-define("BASE_URL", "https://ssfhealth.in/");
-define("ADMIN_URL", BASE_URL . "admin/");
-// define("ADMIN_URL", BASE_URL . "admin/");
-// ==============================
-// 🗄️ DATABASE (LIVE)
-// ==============================
-$dbhost = 'localhost';
-// $dbname = 'lyuzmkmy_jhbewdmy_ssf_in';
-// $dbuser = 'lyuzmkmy_jhbewdmy_ssf_in';
-// $dbpass = 'lyuzmkmy_jhbewdmy_ssf_in';
+    $username = "projectuser";
+    $password = "Solutions@321@";
+    $dbname   = "secondside_seller";
 
-$dbname = 'jhbewdmy_ssf_in';
-$dbuser = 'projectuser';
-$dbpass = 'Solutions@321@';
+    $conn = mysqli_connect($servername, $username, $password, $dbname);
 
-// ==============================
-// 🔌 PDO CONNECTION
-// ==============================
-try {
-    $pdo = new PDO("mysql:host={$dbhost};dbname={$dbname};charset=utf8mb4", $dbuser, $dbpass, [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+    if (! $conn) {
+        die("Connection failed (Seller DB): " . mysqli_connect_error());
+    }
 
-    // Fix GROUP BY issue
-    $pdo->exec("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
-} catch (PDOException $e) {
-    die("PDO Error: " . $e->getMessage());
-}
-// ==============================
-// 🔌 MYSQLI CONNECTION
-// ==============================
-$con = mysqli_connect($dbhost, $dbuser, $dbpass, $dbname);
+    /* Second Database */
+    // $username2   = "root";
+    // $password2   = "";
+    // $dbname2     = "new_jhbewdmy_ssf_in";
 
-if (! $con) {
-    die("MySQLi Error: " . mysqli_connect_error());
-}
 
-mysqli_query($con, "SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+
+    $dbname2 = "jhbewdmy_health";
+    $username2 = "myuser";
+    $password2 = "Solutions@321@";
+
+    $conn3 = mysqli_connect($servername, $username2, $password2, $dbname2);
+
+    if (! $conn3) {
+        die("Connection failed (SSF DB): " . mysqli_connect_error());
+    }
+
+    date_default_timezone_set('Asia/Kolkata');
+
+    // $base_url = "http://localhost/araweb/githubhealth/";
+    $base_url = "https://ssfhealth.in/";

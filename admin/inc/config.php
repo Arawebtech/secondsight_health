@@ -22,22 +22,24 @@ date_default_timezone_set('Asia/Kolkata');
 // ==============================
 // 🌐 BASE URL (FIXED - IMPORTANT)
 // ==============================
-define("BASE_URL", "http://localhost/araweb/health/");
+// define("BASE_URL", "http://localhost/araweb/health/");
+
+$base_url = "https://ssfhealth.in/";
+
 define("ADMIN_URL", BASE_URL . "admin/");
-// define("BASE_URL", "https://secondsightfoundation.in/");
-// define("ADMIN_URL", BASE_URL . "admin/");
 
 // ==============================
 // 🗄️ DATABASE (LIVE)
 // ==============================
 $dbhost = 'localhost';
-$dbname = 'new_jhbewdmy_ssf_in';
-$dbuser = 'root';
-$dbpass = '';
 
-// $dbname = 'jhbewdmy_ssf_in';
-// $dbuser = 'projectuser';
-// $dbpass = 'Solutions@321@';
+// $dbname = 'new_jhbewdmy_ssf_in';
+// $dbuser = 'root';
+// $dbpass = '';
+
+$dbname = 'jhbewdmy_health';
+$dbuser = 'myuser';
+$dbpass = 'Solutions@321@';
 
 // ==============================
 // 🔌 PDO CONNECTION

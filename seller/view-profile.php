@@ -74,7 +74,7 @@ if (!$seller) {
 
 
         .header1 {
-            background: ;
+            /* background: ; */
             color: #000;
             padding: 40px 20px;
             text-align: center;
@@ -396,10 +396,10 @@ if (!$seller) {
 
         <div class="section coupon-box">
 
-           
+
 
             <?php if ($seller->coupon_permission == 'Yes') { ?>
-             <h2>Special Offer Coupon</h2>
+                <h2>Special Offer Coupon</h2>
                 <div class="coupon-code" id="couponCode" onclick="copyToClipboard('<?php echo $seller->coupon_code; ?>')">
                     <?php echo $seller->coupon_code; ?>
                 </div>
@@ -411,9 +411,9 @@ if (!$seller) {
             <?php } else { ?>
                 <!--<p>No active Coupons available at this time.</p>-->
             <?php } ?>
-             <a href="<?php echo $seller->buy_link; ?>" class="buy-btn">
-                    Buy Product Now
-                </a>
+            <a href="<?php echo $seller->buy_link; ?>" class="buy-btn">
+                Buy Product Now
+            </a>
 
         </div>
         <!-- VIDEO SECTION -->
