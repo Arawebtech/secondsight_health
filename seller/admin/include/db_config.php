@@ -19,9 +19,9 @@ if (! $conn) {
 
 
 
-$username2 = "projectuser";
-$password2 = "Solutions@321@";
-$dbname2   = "jhbewdmy_ssf_in";
+$dbname = 'jhbewdmy_health';
+$dbuser = 'myuser';
+$dbpass = 'Solutions@321@';
 
 // $username2 = "root";
 // $password2 = "";
