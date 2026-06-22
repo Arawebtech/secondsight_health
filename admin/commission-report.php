@@ -10,7 +10,88 @@ if(isset($_POST['pay_commission'])) {
     $statement = $pdo->prepare("INSERT INTO tbl_commission_payment (user_id, coupon_id, amount_paid, payment_date) VALUES (?,?,?,?)");
     $statement->execute([$user_id, $coupon_id, $amount_paid, $payment_date]);
     
-    // Optional: Mark commission records as Paid
+    // Mark commission records as Paid
+    $st_upd = $pdo->prepare("UPDATE tbl_affiliate_commission SET status = 'Paid' WHERE user_id = ? AND status = 'Pending'");
+    $st_upd->execute([$user_id]);
+
+    header('location: commission-report.php');
+    exit;
+}
+
+if(isset($_POST['accept_request'])) {
+    $request_id = $_POST['request_id'];
+    $st = $pdo->prepare("UPDATE tbl_payout_requests SET status = 'Accepted' WHERE id = ?");
+    $st->execute([$request_id]);
+    header('location: commission-report.php');
+    exit;
+}
+
+if(isset($_POST['pay_request'])) {
+    $request_id = $_POST['request_id'];
+    $user_id = $_POST['user_id'];
+    $amount_paid = (float)$_POST['amount_paid'];
+    $payment_date = date('Y-m-d H:i:s');
+
+    // 1. Mark request as paid
+    $st = $pdo->prepare("UPDATE tbl_payout_requests SET status = 'Paid', payment_date = ? WHERE id = ?");
+    $st->execute([$payment_date, $request_id]);
+
+    // 2. Distribute amount across the user's coupons
+    $st_assign = $pdo->prepare("SELECT uc.*, c.coupon_code 
+                                FROM tbl_user_coupon uc 
+                                LEFT JOIN tbl_coupon c ON uc.coupon_id = c.id 
+                                WHERE uc.user_id = ?");
+    $st_assign->execute([$user_id]);
+    $assignments = $st_assign->fetchAll(PDO::FETCH_ASSOC);
+
+    $remaining_to_pay = $amount_paid;
+
+    foreach ($assignments as $row) {
+        $coupon_code = $row['coupon_code'];
+        
+        if (!empty($coupon_code) && !empty($row['p_id'])) {
+            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
+                                          FROM tbl_order o
+                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
+                                          WHERE ac.user_id = ? AND (LOWER(o.applied_coupon) = LOWER(?) OR o.p_id = ?) AND o.order_status = 'Success'");
+            $stmt_orders->execute([$row['user_id'], $coupon_code, $row['p_id']]);
+        } elseif (!empty($coupon_code)) {
+            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
+                                          FROM tbl_order o
+                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
+                                          WHERE ac.user_id = ? AND LOWER(o.applied_coupon) = LOWER(?) AND o.order_status = 'Success'");
+            $stmt_orders->execute([$row['user_id'], $coupon_code]);
+        } elseif (!empty($row['p_id'])) {
+            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
+                                          FROM tbl_order o
+                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
+                                          WHERE ac.user_id = ? AND o.p_id = ? AND o.order_status = 'Success'");
+            $stmt_orders->execute([$row['user_id'], $row['p_id']]);
+        } else {
+            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
+                                          FROM tbl_order o
+                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
+                                          WHERE ac.user_id = ? AND o.order_status = 'Success'");
+            $stmt_orders->execute([$row['user_id']]);
+        }
+        $total_earned = $stmt_orders->fetchColumn() ?: 0;
+
+        $stmt_payments = $pdo->prepare("SELECT SUM(amount_paid) as total_paid FROM tbl_commission_payment WHERE user_id = ? AND (coupon_id = ? OR (coupon_id = 0 AND ? = 0))");
+        $stmt_payments->execute([$row['user_id'], (int)$row['coupon_id'], (int)$row['coupon_id']]);
+        $total_paid = $stmt_payments->fetchColumn() ?: 0;
+
+        $balance = $total_earned - $total_paid;
+
+        if ($balance > 0 && $remaining_to_pay > 0) {
+            $pay_for_this = min($balance, $remaining_to_pay);
+            $st2 = $pdo->prepare("INSERT INTO tbl_commission_payment (user_id, coupon_id, amount_paid, payment_date) VALUES (?, ?, ?, ?)");
+            $st2->execute([$user_id, $row['coupon_id'], $pay_for_this, $payment_date]);
+            
+            $remaining_to_pay -= $pay_for_this;
+        }
+    }
+
+    // 3. Mark pending commissions as paid
     $st_upd = $pdo->prepare("UPDATE tbl_affiliate_commission SET status = 'Paid' WHERE user_id = ? AND status = 'Pending'");
     $st_upd->execute([$user_id]);
 
@@ -81,6 +162,87 @@ $grand_total_balance = $grand_total_earned - $grand_total_paid;
               <span class="info-box-number">₹<?= number_format($grand_total_balance, 2); ?></span>
             </div>
           </div>
+        </div>
+    </div>
+
+	<div class="row">
+		<div class="col-md-12">
+			<div class="box box-warning">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Payout Requests Queue</h3>
+                </div>
+				<div class="box-body table-responsive">
+					<table class="table table-bordered table-hover table-striped">
+						<thead class="thead-dark">
+							<tr>
+								<th>#</th>
+								<th>Partner Detail</th>
+								<th>Bank Details</th>
+								<th>Amount</th>
+								<th>Status</th>
+								<th>Request Date</th>
+								<th width="140">Action</th>
+							</tr>
+						</thead>
+						<tbody>
+                            <?php
+                            $stmt_req = $pdo->prepare("SELECT pr.*, u.full_name, u.email, u.phone, u.bank_name, u.account_no, u.ifsc_code, u.account_holder 
+                                                       FROM tbl_payout_requests pr 
+                                                       JOIN tbl_user u ON pr.user_id = u.id 
+                                                       WHERE pr.status IN ('Pending', 'Accepted') 
+                                                       ORDER BY pr.id ASC");
+                            $stmt_req->execute();
+                            $requests = $stmt_req->fetchAll(PDO::FETCH_ASSOC);
+                            if(count($requests) == 0) {
+                                echo '<tr><td colspan="7" class="text-center">No pending payout requests</td></tr>';
+                            } else {
+                                foreach($requests as $i => $req) {
+                                    ?>
+                                    <tr>
+                                        <td><?= $i+1; ?></td>
+                                        <td>
+                                            <strong><?= htmlspecialchars($req['full_name']); ?></strong><br>
+                                            <small><?= htmlspecialchars($req['email']); ?><br><?= htmlspecialchars($req['phone']); ?></small>
+                                        </td>
+                                        <td>
+                                            Bank: <?= htmlspecialchars($req['bank_name']); ?><br>
+                                            A/C: <?= htmlspecialchars($req['account_no']); ?><br>
+                                            IFSC: <?= htmlspecialchars($req['ifsc_code']); ?><br>
+                                            Holder: <?= htmlspecialchars($req['account_holder']); ?>
+                                        </td>
+                                        <td><strong>₹<?= number_format($req['amount'], 2); ?></strong></td>
+                                        <td>
+                                            <?php if($req['status'] == 'Pending'): ?>
+                                                <span class="label label-warning">Pending</span>
+                                            <?php else: ?>
+                                                <span class="label label-primary">Accepted</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= date('d M Y h:i A', strtotime($req['request_date'])); ?></td>
+                                        <td>
+                                            <?php if($req['status'] == 'Pending'): ?>
+                                                <form action="" method="POST" style="display:inline-block;">
+                                                    <input type="hidden" name="request_id" value="<?= $req['id']; ?>">
+                                                    <button type="submit" name="accept_request" class="btn btn-primary btn-sm">Accept Request</button>
+                                                </form>
+                                            <?php elseif($req['status'] == 'Accepted'): ?>
+                                                <form action="" method="POST" style="display:inline-block;">
+                                                    <input type="hidden" name="request_id" value="<?= $req['id']; ?>">
+                                                    <input type="hidden" name="user_id" value="<?= $req['user_id']; ?>">
+                                                    <input type="hidden" name="amount_paid" value="<?= $req['amount']; ?>">
+                                                    <button type="submit" name="pay_request" class="btn btn-success btn-sm">Mark as Paid</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                }
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 

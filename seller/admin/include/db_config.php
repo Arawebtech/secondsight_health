@@ -2,8 +2,6 @@
 
 $servername = "localhost";
 
-/* First Database */
-
 
 $username = "projectuser";
 $password = "Solutions@321@";
@@ -19,7 +17,6 @@ if (! $conn) {
     die("Connection failed (Seller DB): " . mysqli_connect_error());
 }
 
-/* Second Database */
 
 
 $username2 = "projectuser";

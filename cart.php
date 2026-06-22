@@ -38,6 +38,120 @@ if (isset($_SESSION['user_id'])) {
 $coupon_amount = 0;
 $coupon_code = "";
 
+// Auto-apply Referral Coupon if logged in and not yet applied
+if ($user_id && !isset($_SESSION['coupon']) && !isset($_SESSION['coupon_removed'])) {
+    if ($con) {
+        $q_cart_items = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
+        if ($q_cart_items && mysqli_num_rows($q_cart_items) > 0) {
+            $cart_items = [];
+            while ($c_row = mysqli_fetch_assoc($q_cart_items)) {
+                $cart_items[] = $c_row;
+            }
+
+            foreach ($cart_items as $item) {
+                $item_p_id  = $item['p_id'];
+                $partner_id = 0;
+
+                if (isset($_SESSION['product_ref'][$item_p_id])) {
+                    $partner_id = $_SESSION['product_ref'][$item_p_id];
+                } elseif (isset($_SESSION['ref_user_id'])) {
+                    $partner_id = $_SESSION['ref_user_id'];
+                }
+
+                if ($partner_id > 0) {
+                    $stmt_cp = $pdo->prepare("
+                        SELECT uc.*, c.coupon_code, c.amount as coupon_amount, c.type as coupon_type, c.p_id as coupon_p_id
+                        FROM tbl_user_coupon uc
+                        JOIN tbl_coupon c ON uc.coupon_id = c.id
+                        WHERE uc.user_id = ? AND (uc.p_id = ? OR uc.p_id IS NULL OR uc.p_id = 0)
+                        LIMIT 1
+                    ");
+                    $stmt_cp->execute([$partner_id, $item_p_id]);
+                    $uc_data = $stmt_cp->fetch(PDO::FETCH_ASSOC);
+
+                    if ($uc_data) {
+                        $coupon_code   = $uc_data['coupon_code'];
+                        $coupon_amount = (float) $uc_data['coupon_amount'];
+                        $coupon_type   = $uc_data['coupon_type'];
+                        $coupon_p_id   = (int) $uc_data['coupon_p_id'];
+
+                        $eligible_total = 0.0;
+                        foreach ($cart_items as $c_item) {
+                            if ($coupon_p_id === 0 || (int) $c_item['p_id'] === $coupon_p_id) {
+                                $eligible_total += (float) $c_item['p_actual_price'] * (int) $c_item['no_of_item'];
+                            }
+                        }
+
+                        if ($eligible_total > 0) {
+                            if ($coupon_type === 'percent') {
+                                $discount_amt = min($eligible_total, ($eligible_total * $coupon_amount / 100));
+                            } else {
+                                $discount_amt = min($eligible_total, $coupon_amount);
+                            }
+
+                            $_SESSION['coupon'] = [
+                                'code'   => $coupon_code,
+                                'amount' => $discount_amt,
+                                'p_id'   => $coupon_p_id,
+                                'type'   => $coupon_type,
+                            ];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Auto-apply Product-specific generic coupon if no coupon is applied
+if (!isset($_SESSION['coupon']) && !isset($_SESSION['coupon_removed'])) {
+    if ($con) {
+        $q_cart_items = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
+        if ($q_cart_items && mysqli_num_rows($q_cart_items) > 0) {
+            while ($c_item = mysqli_fetch_assoc($q_cart_items)) {
+                $item_p_id = $c_item['p_id'];
+                // Check if this product has a generic coupon
+                $q_coupon = mysqli_query($con, "SELECT * FROM tbl_coupon WHERE p_id = '$item_p_id' AND user_id = '0' ORDER BY id DESC LIMIT 1");
+                if ($q_coupon && mysqli_num_rows($q_coupon) > 0) {
+                    $c_data = mysqli_fetch_assoc($q_coupon);
+                    $coupon_code = $c_data['coupon_code'];
+                    $coupon_amount = (float)$c_data['amount'];
+                    $coupon_type = $c_data['type'];
+                    $coupon_p_id = (int)$c_data['p_id'];
+
+                    $eligible_total = (float)$c_item['p_actual_price'] * (int)$c_item['no_of_item'];
+
+                    if ($eligible_total > 0) {
+                        if ($coupon_type === 'percent') {
+                            $discount_amt = min($eligible_total, ($eligible_total * $coupon_amount / 100));
+                        } else {
+                            $discount_amt = min($eligible_total, $coupon_amount);
+                        }
+
+                        $_SESSION['coupon'] = [
+                            'code'   => $coupon_code,
+                            'amount' => $discount_amt,
+                            'p_id'   => $coupon_p_id,
+                            'type'   => $coupon_type,
+                        ];
+                        break; // Applied one coupon, stop checking
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Restore from cookie if session was lost during login redirect
+if (isset($_COOKIE['backup_coupon_data']) && !empty($_COOKIE['backup_coupon_data'])) {
+    $decoded_coupon = json_decode($_COOKIE['backup_coupon_data'], true);
+    if (is_array($decoded_coupon) && !empty($decoded_coupon['code'])) {
+        $_SESSION['coupon'] = $decoded_coupon;
+    }
+    setcookie("backup_coupon_data", "", time() - 3600, "/"); // Clear the cookie
+}
+
 // Use existing coupon session data if present
 if (isset($_SESSION['coupon']) && is_array($_SESSION['coupon'])) {
     $coupon_code = $_SESSION['coupon']['code'] ?? '';
@@ -177,9 +291,6 @@ if (isset($_SESSION['flash_message'])) {
                             $_SESSION['coupon']['type'] = $c_type;
                             $_SESSION['coupon']['p_id'] = $c_row['p_id'];
                         }
-                    } elseif (isset($_SESSION['coupon']) && $eligible_total <= 0) {
-                        $coupon_amount = 0;
-                        $_SESSION['coupon']['amount'] = 0;
                     }
                     ?>
 
@@ -208,7 +319,7 @@ if (isset($_SESSION['flash_message'])) {
             <div class="coupon-input d-flex gap-2">
                 <input type="text" id="coupon-input" name="coupon_code" placeholder="Enter coupon code"
                     class="form-control" value="<?= htmlspecialchars($coupon_code); ?>">
-                <button type="button" class="btn btn-primary" onclick="applyCoupon()">Apply</button>
+                <button type="button" class="btn btn-primary" id="apply-coupon-btn" onclick="applyCoupon()">Apply</button>
             </div>
             <small id="coupon-message" class="text-success mt-2 d-block">
                 <?php if (isset($_SESSION['coupon']) && is_array($_SESSION['coupon'])): ?>
@@ -242,8 +353,15 @@ if (isset($_SESSION['flash_message'])) {
         <input type="hidden" id="coupon-amount" value="<?= $coupon_amount; ?>">
 
 
-        <?php if ($btn_disable === "" && $user_id && $has_items): ?>
-            <a href="<?= $base_url; ?>checkout.php" class="btn btn-cart mt-3">Proceed to checkout</a>
+        <?php 
+        $is_logged_in = isset($_SESSION['user_id']);
+        if ($btn_disable === "" && $user_id && $has_items): 
+        ?>
+            <?php if ($is_logged_in): ?>
+                <a href="<?= $base_url; ?>checkout.php" class="btn btn-cart mt-3">Proceed to checkout</a>
+            <?php else: ?>
+                <button type="button" onclick="promptLoginOrGuest()" class="btn btn-cart mt-3" style="width: 100%;">Proceed to checkout</button>
+            <?php endif; ?>
         <?php else: ?>
             <a href="<?= $base_url; ?>index.php" class="btn btn-cart secondary mt-3">
                 <i class="fas fa-arrow-left me-2"></i>Continue Shopping
@@ -261,48 +379,124 @@ if (isset($_SESSION['flash_message'])) {
 
 
     <script>
-    // Apply Coupon
-  function applyCoupon() {
-    const couponCode = $("#coupon-input").val().trim();
-    const messageEl = $("#coupon-message");
-
-    if (!couponCode) {
-      messageEl.text("Please enter a coupon code.")
-               .removeClass("text-success").addClass("text-danger");
-      return;
+    function updateQuantity(cartId, action) {
+        $.post("ajax/update-cart.php", { cart_id: cartId, action: action }, function(res) {
+            location.reload();
+        });
     }
 
-    $.post("ajax/apply-coupon.php", { coupon_code: couponCode }, function (res) {
-      if (res.success) {
-        messageEl.text("Coupon applied: " + res.totals.coupon_code + 
-                       " (-₹" + res.totals.coupon_amount + ")")
-                 .removeClass("text-danger").addClass("text-success");
-        location.reload();
-      } else {
-        messageEl.text(res.message)
-                 .removeClass("text-success").addClass("text-danger");
-      }
-    }, "json");
-  }
+    $(document).ready(function() {
+        // Auto-restore coupon from localStorage if session dropped it
+        let currentCode = $('#coupon-input').val();
+        let backupCode = localStorage.getItem('backup_coupon_code');
+        
+        if (!currentCode && backupCode) {
+            console.log("Restoring coupon from localStorage:", backupCode);
+            // We apply it automatically
+            $.ajax({
+                type: "POST",
+                url: "ajax/apply-coupon.php",
+                data: { coupon_code: backupCode },
+                dataType: "json",
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        localStorage.removeItem('backup_coupon_code');
+                    }
+                }
+            });
+        }
+    });
 
-  // Remove Coupon
-  function removeCoupon() {
-    $.post("ajax/remove-coupon.php", {}, function (res) {
-      if (res.success) {
-        location.reload();
-      } else {
-        alert("Failed to remove coupon.");
-      }
-    }, "json");
-  }
-  
-        setTimeout(function() {
-            let alertEl = document.querySelector('.alert');
-            if (alertEl) {
-                alertEl.classList.remove('show');
-                alertEl.classList.add('fade');
+    // Apply Coupon
+    function applyCoupon() {
+        let couponCode = $('#coupon-input').val().trim();
+        if (!couponCode) {
+            alert("Please enter a coupon code");
+            return;
+        }
+        
+        $('#apply-coupon-btn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Applying...');
+
+        $.ajax({
+            type: "POST",
+            url: "ajax/apply-coupon.php",
+            data: { coupon_code: couponCode },
+            dataType: "json",
+            success: function(response) {
+                if (response.success) {
+                    // Save to local storage for extra safety across redirects
+                    localStorage.setItem('backup_coupon_code', couponCode);
+
+                    // Show success message inside the input wrapper
+                    let successMsg = `<small id="coupon-message" class="text-success mt-2 d-block">Coupon applied successfully!</small>`;
+                    $('#coupon-message').remove();
+                    $('.coupon-input').after(successMsg);
+
+                    // Disable button
+                    $('#apply-coupon-btn').prop('disabled', true);
+
+                    // Reload page to reflect changes
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    $('#apply-coupon-btn').prop('disabled', false).text('Apply');
+                    alert(response.message || "Invalid coupon");
+                }
+            },
+            error: function() {
+                $('#apply-coupon-btn').prop('disabled', false).text('Apply');
+                alert("Failed to apply coupon. Please try again.");
             }
-        }, 3000);
+        });
+    }
+
+    // Remove Coupon
+    function removeCoupon() {
+        $.post("ajax/remove-coupon.php", {}, function (res) {
+            if (res.success) {
+                localStorage.removeItem('backup_coupon_code');
+                location.reload();
+            } else {
+                alert(res.message || "Failed to remove coupon.");
+            }
+        }, "json");
+    }
+    
+    // Auto fade out alerts
+    setTimeout(function() {
+        let alertEl = document.querySelector('.alert');
+        if (alertEl) {
+            alertEl.classList.remove('show');
+            alertEl.classList.add('fade');
+            setTimeout(() => alertEl.remove(), 150);
+        }
+    }, 5000);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function promptLoginOrGuest() {
+        Swal.fire({
+            title: 'Please Log In',
+            text: 'You must be logged in to access checkout, or you can continue as a guest.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#fcb813',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Log In',
+            cancelButtonText: 'Continue as Guest',
+            reverseButtons: true,
+            allowOutsideClick: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = 'login.php';
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                window.location.href = 'checkout.php?guest=1';
+            }
+        });
+    }
     </script>
 
     <?php

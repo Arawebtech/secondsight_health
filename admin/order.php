@@ -44,27 +44,13 @@
           <table id="example1" class="table table-bordered table-hover table-striped">
 			<thead>
 			    <tr>
-			        <th><input type="checkbox" id="select_all"></th>
-			        <th>#</th>
-                    <!-- <th>Image</th>
-                    <th>User Id</th> -->
-                    <th>Order</th>
-			        <!-- <th>Product Name</th>
-                    <th>SKU</th>
-                    <th>Weight</th>
-                    <th>Unit</th>
-                    <th>color</th>
-                    <th>size</th>
-                    <th>Total Price</th> -->
-                    <!--<th>Price</th>-->
-                    <!-- <th>GST</th>
-                    <th>Quantity</th>
-                    <th>No. Of Item</th>
-                    <th>Billing Address</th>
-                    <th>Shipping Address</th> -->
-                     <th>Order Status</th>
-                    <th>Order Date</th>
-                    <th>Print Label</th>
+			        <th style="width: 5%;"><input type="checkbox" id="select_all"></th>
+			        <th style="width: 5%;">#</th>
+                    <th style="width: 25%;">Order</th>
+                    <th style="width: 15%;">User Type</th>
+                    <th style="width: 20%;">Order Status</th>
+                    <th style="width: 15%;">Order Date</th>
+                    <th style="width: 15%;">Print Label</th>
 			    </tr>
 			</thead>
             <tbody>
@@ -75,18 +61,19 @@
                 $statement = $pdo->prepare("
                 SELECT 
                     o.order_id,
-                    u.full_name,
-                    u.email,
-                    u.phone,
+                    u.id AS registered_user_id,
+                    COALESCE(u.full_name, o.b_name) AS full_name,
+                    COALESCE(u.email, o.b_email) AS email,
+                    COALESCE(u.phone, o.b_phone) AS phone,
                     MAX(o.order_date) AS order_date,
                     MAX(o.order_status) AS order_status,
                     COUNT(o.p_id) AS total_items,
                     p.payable_amount,
                     p.payment_status
                 FROM tbl_order o
-                JOIN tbl_user u ON o.user_id = u.id
+                LEFT JOIN tbl_user u ON o.user_id = u.id
                 LEFT JOIN tbl_payment p ON o.order_id = p.order_id
-                GROUP BY o.order_id, u.full_name, u.email, u.phone, p.payable_amount, p.payment_status
+                GROUP BY o.order_id, u.id, u.full_name, o.b_name, u.email, o.b_email, u.phone, o.b_phone, p.payable_amount, p.payment_status
                 ORDER BY MAX(o.id) DESC;
 
                 ");
@@ -116,6 +103,13 @@
 	                    <td><?php echo $i; ?></td>
                        
                         <td> <a href="<?php echo $orderLink; ?>"><?php echo $row['order_id']; ?> - <?php echo htmlspecialchars($row['full_name']); ?></a> </td>
+                        <td>
+                            <?php if (!empty($row['registered_user_id'])): ?>
+                                <span class="label label-primary" style="font-size: 12px; display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #337ab7; color: white;">Registered User</span>
+                            <?php else: ?>
+                                <span class="label label-warning" style="font-size: 12px; display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #f0ad4e; color: white;">Guest</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <select name="shipping_status" id="<?= $row['order_id']; ?>" onchange="change_status(this.value)">
                                 <option value="<?= $row['order_status']; ?>">

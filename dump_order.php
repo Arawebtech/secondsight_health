@@ -1,0 +1,1 @@
+<?php require 'admin/inc/config.php'; $res = mysqli_query($con, 'SHOW COLUMNS FROM tbl_order'); while ($r = mysqli_fetch_assoc($res)) print_r($r); ?>

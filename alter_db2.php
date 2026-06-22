@@ -1,0 +1,1 @@
+<?php require 'admin/inc/config.php'; $sql = "ALTER TABLE tbl_payout_requests MODIFY COLUMN status ENUM('Pending', 'Accepted', 'Paid', 'Rejected') DEFAULT 'Pending'"; if(mysqli_query($con, $sql)) echo 'Success'; else echo 'Error: '.mysqli_error($con); ?>

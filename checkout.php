@@ -3,11 +3,55 @@
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
     include "admin/inc/config.php";
-    if (! isset($_SESSION['user_id'])) {
-    // Redirect non-logged-in users to login or cart page
-    echo "<script>alert('You must be logged in to access checkout'); window.location.href = 'login.php';</script>";
-    exit;
+
+    // Handle guest checkout session
+    if (isset($_GET['guest'])) {
+        $_SESSION['is_guest_checkout'] = true;
     }
+
+    if (!isset($_SESSION['user_id']) && empty($_SESSION['is_guest_checkout'])) {
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Required</title>
+    <!-- SweetAlert2 CSS and JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background: #f8f9fa; font-family: 'Public Sans', sans-serif; }
+    </style>
+</head>
+<body>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                title: 'Please Log In',
+                text: 'You must be logged in to access checkout, or you can continue as a guest.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#fcb813',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Log In',
+                cancelButtonText: 'Continue as Guest',
+                reverseButtons: true,
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'login.php';
+                } else {
+                    window.location.href = 'checkout.php?guest=1';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+<?php
+        exit;
+    }
+
     // Get user ID from session
     $user_id = $_SESSION['user_id'] ?? $_SESSION['temp_user_id'] ?? null;
     if (! $user_id) {
@@ -55,8 +99,8 @@
 ?>
 
 <?php
-    $b_full_name = $b_contact_no = $b_building_no = $b_street_address = $b_landmark = $b_town = $b_district = $b_state = $b_postcode = $b_gst_no = $b_AddressType = "";
-    $s_full_name = $s_contact_no = $s_building_no = $s_street_address = $s_landmark = $s_town = $s_district = $s_state = $s_postcode = $s_gst_no = $s_AddressType = "";
+    $b_full_name = $b_contact_no = $b_email = $b_building_no = $b_street_address = $b_landmark = $b_town = $b_district = $b_state = $b_postcode = $b_gst_no = $b_AddressType = "";
+    $s_full_name = $s_contact_no = $s_email = $s_building_no = $s_street_address = $s_landmark = $s_town = $s_district = $s_state = $s_postcode = $s_gst_no = $s_AddressType = "";
 
     $is_b_address_exist = 0;
     $is_s_address_exist = 0;
@@ -70,6 +114,7 @@
         $is_b_address_exist = 1;
         $b_full_name        = $data_b['name'];
         $b_contact_no       = $data_b['phone_no'];
+        $b_email            = $data_b['email'] ?? '';
         $b_building_no      = $data_b['building_no'];
         $b_street_address   = $data_b['street_address'];
         $b_landmark         = $data_b['landmark'];
@@ -80,7 +125,7 @@
         $b_gst_no           = $data_b['gst_no'];
 
         // ✅ Build full billing address & save in session
-        $full_billing_address             = "$b_full_name, $b_contact_no, $b_building_no, $b_street_address, $b_landmark, $b_town, $b_district, $b_state, $b_postcode, $b_gst_no";
+        $full_billing_address             = "$b_full_name, $b_contact_no, $b_email, $b_building_no, $b_street_address, $b_landmark, $b_town, $b_district, $b_state, $b_postcode, $b_gst_no";
         $_SESSION['full_billing_address'] = $full_billing_address;
     }
 
@@ -92,6 +137,7 @@
         $is_s_address_exist = 1;
         $s_full_name        = $data_s['name'];
         $s_contact_no       = $data_s['phone_no'];
+        $s_email            = $data_s['email'] ?? '';
         $s_building_no      = $data_s['building_no'];
         $s_street_address   = $data_s['street_address'];
         $s_landmark         = $data_s['landmark'];
@@ -102,7 +148,7 @@
         $s_gst_no           = $data_s['gst_no'];
 
         // Build full shipping address
-        $full_shipping_address = "$s_full_name, $s_contact_no, $s_building_no, $s_street_address, $s_landmark, $s_town, $s_district, $s_state, $s_postcode, $s_gst_no";
+        $full_shipping_address = "$s_full_name, $s_contact_no, $s_email, $s_building_no, $s_street_address, $s_landmark, $s_town, $s_district, $s_state, $s_postcode, $s_gst_no";
 
         // ✅ Store in session for shipping charge calc
         $_SESSION['full_shipping_address'] = $full_shipping_address;
@@ -114,9 +160,26 @@
 
     }
 
+    // Auto-fill from user profile if missing
+    if (isset($_SESSION['user_id'])) {
+        $logged_in_user_id = $_SESSION['user_id'];
+        $u_q = mysqli_query($con, "SELECT full_name, email, phone FROM tbl_user WHERE id = '$logged_in_user_id' LIMIT 1");
+        if ($u_q && mysqli_num_rows($u_q) > 0) {
+            $u_data = mysqli_fetch_assoc($u_q);
+            if (empty($b_email)) $b_email = $u_data['email'] ?? '';
+            if (empty($b_full_name)) $b_full_name = $u_data['full_name'] ?? '';
+            if (empty($b_contact_no)) $b_contact_no = $u_data['phone'] ?? '';
+            
+            if (empty($s_email)) $s_email = $u_data['email'] ?? '';
+            if (empty($s_full_name)) $s_full_name = $u_data['full_name'] ?? '';
+            if (empty($s_contact_no)) $s_contact_no = $u_data['phone'] ?? '';
+        }
+    }
+
     if (isset($_POST['submit_address'])) {
     $b_full_name      = mysqli_real_escape_string($con, $_POST['b_full_name']);
     $b_contact_no     = mysqli_real_escape_string($con, $_POST['b_contact_no']);
+    $b_email          = mysqli_real_escape_string($con, $_POST['b_email']);
     $b_building_no    = mysqli_real_escape_string($con, $_POST['b_building_no']);
     $b_street_address = mysqli_real_escape_string($con, $_POST['b_street_address']);
     $b_landmark       = mysqli_real_escape_string($con, $_POST['b_landmark']);
@@ -127,22 +190,23 @@
     $b_gst_no         = mysqli_real_escape_string($con, $_POST['b_gst_no']);
     $b_AddressType    = "";
 
-    $full_billing_address             = $b_full_name . ', ' . $b_contact_no . ', ' . $b_building_no . ', ' . $b_street_address . ', ' . $b_landmark . ', ' . $b_town . ', ' . $b_district . ', ' . $b_state . ', ' . $b_postcode . ', ' . $b_gst_no . ', ' . $b_AddressType;
+    $full_billing_address             = $b_full_name . ', ' . $b_contact_no . ', ' . $b_email . ', ' . $b_building_no . ', ' . $b_street_address . ', ' . $b_landmark . ', ' . $b_town . ', ' . $b_district . ', ' . $b_state . ', ' . $b_postcode . ', ' . $b_gst_no . ', ' . $b_AddressType;
     $_SESSION['full_billing_address'] = $full_billing_address;
 
     if ($is_b_address_exist) {
-        $sql_b = "UPDATE tbl_billing_address SET name = '$b_full_name', phone_no = '$b_contact_no',
+        $sql_b = "UPDATE tbl_billing_address SET name = '$b_full_name', phone_no = '$b_contact_no', email = '$b_email',
                     building_no = '$b_building_no', street_address = '$b_street_address', landmark = '$b_landmark', town = '$b_town', district = '$b_district', state = '$b_state', pincode = '$b_postcode', gst_no = '$b_gst_no', AddressType = '$b_AddressType'
                     WHERE user_id = '$user_id'";
     } else {
-        $sql_b = "INSERT INTO tbl_billing_address (user_id, name, phone_no, building_no, street_address, landmark, town, district, state, pincode, gst_no , AddressType)
-                VALUES ('$user_id', '$b_full_name', '$b_contact_no', '$b_building_no', '$b_street_address', '$b_landmark', '$b_town', '$b_district', '$b_state', '$b_postcode', '$b_gst_no', '$b_AddressType')";
+        $sql_b = "INSERT INTO tbl_billing_address (user_id, name, phone_no, email, building_no, street_address, landmark, town, district, state, pincode, gst_no , AddressType)
+                VALUES ('$user_id', '$b_full_name', '$b_contact_no', '$b_email', '$b_building_no', '$b_street_address', '$b_landmark', '$b_town', '$b_district', '$b_state', '$b_postcode', '$b_gst_no', '$b_AddressType')";
     }
     $result_b = mysqli_query($con, $sql_b);
 
     if (isset($_POST['ship_to_different_address'])) {
         $s_full_name                       = mysqli_real_escape_string($con, $_POST['s_full_name']);
         $s_contact_no                      = mysqli_real_escape_string($con, $_POST['s_contact_no']);
+        $s_email                           = mysqli_real_escape_string($con, $_POST['s_email']);
         $s_building_no                     = mysqli_real_escape_string($con, $_POST['s_building_no']);
         $s_street_address                  = mysqli_real_escape_string($con, $_POST['s_street_address']);
         $s_landmark                        = mysqli_real_escape_string($con, $_POST['s_landmark']);
@@ -152,12 +216,13 @@
         $s_postcode                        = mysqli_real_escape_string($con, $_POST['s_postcode']);
         $s_gst_no                          = mysqli_real_escape_string($con, $_POST['s_gst_no']);
         $s_AddressType                     = "";
-        $full_shipping_address             = $s_full_name . ', ' . $s_contact_no . ', ' . $s_building_no . ', ' . $s_street_address . ', ' . $s_landmark . ', ' . $s_town . ', ' . $s_district . ', ' . $s_state . ', ' . $s_postcode . ', ' . $s_gst_no . ', ' . $s_AddressType;
+        $full_shipping_address             = $s_full_name . ', ' . $s_contact_no . ', ' . $s_email . ', ' . $s_building_no . ', ' . $s_street_address . ', ' . $s_landmark . ', ' . $s_town . ', ' . $s_district . ', ' . $s_state . ', ' . $s_postcode . ', ' . $s_gst_no . ', ' . $s_AddressType;
         $_SESSION['full_shipping_address'] = $full_shipping_address;
         $_SESSION['s_state']               = $s_state;
     } else {
         $s_full_name                       = $b_full_name;
         $s_contact_no                      = $b_contact_no;
+        $s_email                           = $b_email;
         $s_building_no                     = $b_building_no;
         $s_street_address                  = $b_street_address;
         $s_landmark                        = $b_landmark;
@@ -167,16 +232,16 @@
         $s_postcode                        = $b_postcode;
         $s_gst_no                          = $b_gst_no;
         $s_AddressType                     = "";
-        $full_shipping_address             = $s_full_name . ', ' . $s_contact_no . ', ' . $s_building_no . ', ' . $s_street_address . ', ' . $s_landmark . ', ' . $s_town . ', ' . $s_district . ', ' . $s_state . ', ' . $s_postcode . ', ' . $s_gst_no . ', ' . $s_AddressType;
+        $full_shipping_address             = $s_full_name . ', ' . $s_contact_no . ', ' . $s_email . ', ' . $s_building_no . ', ' . $s_street_address . ', ' . $s_landmark . ', ' . $s_town . ', ' . $s_district . ', ' . $s_state . ', ' . $s_postcode . ', ' . $s_gst_no . ', ' . $s_AddressType;
         $_SESSION['full_shipping_address'] = $full_shipping_address;
         $_SESSION['s_state']               = $s_state;
     }
 
     if ($is_s_address_exist) {
-        $sql_s = "UPDATE tbl_shipping_address SET name = '$s_full_name', phone_no = '$s_contact_no', building_no = '$s_building_no', street_address = '$s_street_address', landmark = '$s_landmark', town = '$s_town', district = '$s_district', state = '$s_state', pincode = '$s_postcode', gst_no = '$s_gst_no', AddressType = '$s_AddressType' WHERE user_id = '$user_id'";
+        $sql_s = "UPDATE tbl_shipping_address SET name = '$s_full_name', phone_no = '$s_contact_no', email = '$s_email', building_no = '$s_building_no', street_address = '$s_street_address', landmark = '$s_landmark', town = '$s_town', district = '$s_district', state = '$s_state', pincode = '$s_postcode', gst_no = '$s_gst_no', AddressType = '$s_AddressType' WHERE user_id = '$user_id'";
     } else {
-        $sql_s = "INSERT INTO tbl_shipping_address (user_id, name, phone_no, building_no, street_address, landmark, town, district, state, pincode, gst_no, AddressType)
-                    VALUES ('$user_id', '$s_full_name', '$s_contact_no', '$s_building_no', '$s_street_address', '$s_landmark', '$s_town', '$s_district', '$s_state', '$s_postcode', '$s_gst_no', '$s_AddressType')";
+        $sql_s = "INSERT INTO tbl_shipping_address (user_id, name, phone_no, email, building_no, street_address, landmark, town, district, state, pincode, gst_no, AddressType)
+                    VALUES ('$user_id', '$s_full_name', '$s_contact_no', '$s_email', '$s_building_no', '$s_street_address', '$s_landmark', '$s_town', '$s_district', '$s_state', '$s_postcode', '$s_gst_no', '$s_AddressType')";
     }
     $result_s = mysqli_query($con, $sql_s);
 
@@ -219,6 +284,7 @@
 
     $b_name     = mysqli_real_escape_string($con, $data_b['name']);
     $b_phone    = mysqli_real_escape_string($con, $data_b['phone_no']);
+    $b_email    = mysqli_real_escape_string($con, $data_b['email'] ?? '');
     $b_building = mysqli_real_escape_string($con, $data_b['building_no']);
     $b_street   = mysqli_real_escape_string($con, $data_b['street_address']);
     $b_landmark = mysqli_real_escape_string($con, $data_b['landmark']);
@@ -230,6 +296,7 @@
 
     $s_name     = mysqli_real_escape_string($con, $data_s['name']);
     $s_phone    = mysqli_real_escape_string($con, $data_s['phone_no']);
+    $s_email    = mysqli_real_escape_string($con, $data_s['email'] ?? '');
     $s_building = mysqli_real_escape_string($con, $data_s['building_no']);
     $s_street   = mysqli_real_escape_string($con, $data_s['street_address']);
     $s_landmark = mysqli_real_escape_string($con, $data_s['landmark']);
@@ -240,8 +307,8 @@
     $s_gst      = mysqli_real_escape_string($con, $data_s['gst_no']);
 
     // ✅ Build addresses from DB
-    $full_billing_address  = $b_name . ', ' . $b_phone . ', ' . $b_building . ', ' . $b_street . ', ' . $b_landmark . ', ' . $b_town . ', ' . $b_district . ', ' . $b_state . ', ' . $b_pincode . ', ' . $b_gst;
-    $full_shipping_address = $s_name . ', ' . $s_phone . ', ' . $s_building . ', ' . $s_street . ', ' . $s_landmark . ', ' . $s_town . ', ' . $s_district . ', ' . $s_state . ', ' . $s_pincode . ', ' . $s_gst;
+    $full_billing_address  = $b_name . ', ' . $b_phone . ', ' . $b_email . ', ' . $b_building . ', ' . $b_street . ', ' . $b_landmark . ', ' . $b_town . ', ' . $b_district . ', ' . $b_state . ', ' . $b_pincode . ', ' . $b_gst;
+    $full_shipping_address = $s_name . ', ' . $s_phone . ', ' . $s_email . ', ' . $s_building . ', ' . $s_street . ', ' . $s_landmark . ', ' . $s_town . ', ' . $s_district . ', ' . $s_state . ', ' . $s_pincode . ', ' . $s_gst;
 
     $query_last_order_id   = "SELECT MAX(id) as last_order_id FROM tbl_payment";
     $result_last_order_id  = mysqli_query($con, $query_last_order_id);
@@ -268,7 +335,7 @@
         $commission_user_id = $_SESSION['ref_user_id'];
     }
 
-    $insertOrderQuery = "INSERT INTO tbl_order (user_id, order_id, p_id, p_name, p_color, p_size, p_price, p_actual_price, p_gst, gst_Amount, igst, igst_Amount, cgst, cgst_Amount, sgst, sgst_Amount, p_image, p_quantity, no_of_item, weight, unit, sku, applied_coupon, commission_user_id, b_name, b_phone, b_building, b_street, b_landmark, b_town, b_district, b_state, b_pincode, b_gst, s_name, s_phone, s_building, s_street, s_landmark, s_town, s_district, s_state, s_pincode, s_gst, billing_address, shipping_address, order_status, order_date) VALUES ";
+    $insertOrderQuery = "INSERT INTO tbl_order (user_id, order_id, p_id, p_name, p_color, p_size, p_price, p_actual_price, p_gst, gst_Amount, igst, igst_Amount, cgst, cgst_Amount, sgst, sgst_Amount, p_image, p_quantity, no_of_item, weight, unit, sku, applied_coupon, commission_user_id, b_name, b_phone, b_email, b_building, b_street, b_landmark, b_town, b_district, b_state, b_pincode, b_gst, s_name, s_phone, s_email, s_building, s_street, s_landmark, s_town, s_district, s_state, s_pincode, s_gst, billing_address, shipping_address, order_status, order_date) VALUES ";
 
     $values      = [];
     $query_cart  = "SELECT * FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
@@ -350,7 +417,7 @@
             }
         }
 
-        $values[] = "('$user_id', '$order_id', '$p_id', '$p_name', '$p_color', '$p_size', '$p_price', '$p_actual_price', '$p_gst', '$gst_Amount', '$igst', '$igst_Amount', '$cgst', '$cgst_Amount', '$sgst', '$sgst_Amount', '$p_image', '$p_quantity', '$no_of_item', '$weight', '$unit', '$sku', '$entered_coupon_code', '$item_commission_user_id', '$b_name', '$b_phone', '$b_building', '$b_street', '$b_landmark', '$b_town', '$b_district', '$b_state', '$b_pincode', '$b_gst', '$s_name', '$s_phone', '$s_building', '$s_street', '$s_landmark', '$s_town', '$s_district', '$s_state', '$s_pincode', '$s_gst', '$full_billing_address', '$full_shipping_address', '$order_status', '$order_date')";
+        $values[] = "('$user_id', '$order_id', '$p_id', '$p_name', '$p_color', '$p_size', '$p_price', '$p_actual_price', '$p_gst', '$gst_Amount', '$igst', '$igst_Amount', '$cgst', '$cgst_Amount', '$sgst', '$sgst_Amount', '$p_image', '$p_quantity', '$no_of_item', '$weight', '$unit', '$sku', '$entered_coupon_code', '$item_commission_user_id', '$b_name', '$b_phone', '$b_email', '$b_building', '$b_street', '$b_landmark', '$b_town', '$b_district', '$b_state', '$b_pincode', '$b_gst', '$s_name', '$s_phone', '$s_email', '$s_building', '$s_street', '$s_landmark', '$s_town', '$s_district', '$s_state', '$s_pincode', '$s_gst', '$full_billing_address', '$full_shipping_address', '$order_status', '$order_date')";
     }
 
     $insertOrderQuery .= implode(", ", $values);
@@ -361,7 +428,6 @@
     }
 
     // $coupon_code = $_POST['coupon_code'];
-    $user_id = $_SESSION['user_id'];
     // Use null coalescing operator to avoid undefined index errors
     $coupon_amount   = $_POST['coupon_amount'] ?? 0;
     $shipping_charge = $_POST['shipping_charge'] ?? 0;
@@ -464,6 +530,14 @@
                                             value="<?php echo $b_contact_no; ?>" required>
                                         <div class="invalid-feedback">
                                             Please enter your Number.
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email Address <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control" id="b_email" name="b_email"
+                                            value="<?php echo $b_email; ?>" required>
+                                        <div class="invalid-feedback">
+                                            Please enter a valid email address.
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -574,6 +648,11 @@
                                         <label>Mobile No. <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" name="s_contact_no"
                                             value="<?php echo $s_contact_no; ?>" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email Address <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control" name="s_email"
+                                            value="<?php echo $s_email; ?>" required>
                                     </div>
                                     <div class="form-group">
                                         <label>Address 1 <span class="text-danger">*</span></label>

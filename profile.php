@@ -364,8 +364,15 @@ if ($result_coupons) {
                                     $total_sales = (float)(mysqli_fetch_assoc($q_sales)['val'] ?? 0);
 
                                     // Total Paid
-                                    $q_p = mysqli_query($con, "SELECT SUM(amount_paid) as paid FROM tbl_commission_payment WHERE user_id = '$user_id'");
-                                    $total_paid += (float) (mysqli_fetch_assoc($q_p)['paid'] ?? 0);
+                                    $q_paid = mysqli_query($con, "SELECT SUM(amount_paid) as paid FROM tbl_commission_payment WHERE user_id = '$user_id'");
+                                    $total_paid = (float)(mysqli_fetch_assoc($q_paid)['paid'] ?? 0);
+                                    
+                                    // Fetch Latest Payout Request Status
+                                    $q_req = mysqli_query($con, "SELECT status FROM tbl_payout_requests WHERE user_id = '$user_id' ORDER BY id DESC LIMIT 1");
+                                    $latest_payout_status = null;
+                                    if ($q_req && mysqli_num_rows($q_req) > 0) {
+                                        $latest_payout_status = mysqli_fetch_assoc($q_req)['status'];
+                                    }
                                     
                                     $balance = $total_earned - $total_paid;
                                 ?>
@@ -386,6 +393,20 @@ if ($result_coupons) {
                                         <div class="stat-card paid" style="background: #2e7d32;">
                                             <div><span class="stat-label">Received</span><span
                                                     class="stat-value">₹<?= number_format($total_paid, 0); ?></span></div>
+                                            
+                                            <?php if ($latest_payout_status): ?>
+                                                <div style="font-size: 11px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 6px; line-height: 1.2;">
+                                                    <?php if ($latest_payout_status == 'Pending'): ?>
+                                                        <i class="fas fa-spinner fa-spin"></i> Processing...
+                                                    <?php elseif ($latest_payout_status == 'Accepted'): ?>
+                                                        <i class="fas fa-check-circle"></i> Request accepted and amount will pay in 4 to 5 days
+                                                    <?php elseif ($latest_payout_status == 'Paid'): ?>
+                                                        <i class="fas fa-check-double"></i> Payment transferred in your account
+                                                    <?php elseif ($latest_payout_status == 'Rejected'): ?>
+                                                        <i class="fas fa-times-circle"></i> Request Rejected
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-4 col-lg-2">

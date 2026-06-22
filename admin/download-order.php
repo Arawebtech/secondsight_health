@@ -14,9 +14,9 @@ if(isset($_POST['download_report'])) {
 $query = "
     SELECT 
         o.order_id,
-        u.full_name,
-        u.email,
-        u.phone,
+        COALESCE(u.full_name, o.b_name) AS full_name,
+        COALESCE(u.email, o.b_email) AS email,
+        COALESCE(u.phone, o.b_phone) AS phone,
         MAX(o.order_date) AS order_date,
         MAX(o.order_status) AS order_status,
         COUNT(o.p_id) AS total_items,
@@ -24,9 +24,9 @@ $query = "
         MAX(o.billing_address) AS billing_address,
         MAX(o.shipping_address) AS shipping_address
     FROM tbl_order o
-    JOIN tbl_user u ON o.user_id = u.id
+    LEFT JOIN tbl_user u ON o.user_id = u.id
     LEFT JOIN tbl_payment p ON o.order_id = p.order_id
-    GROUP BY o.order_id, u.full_name, u.email, u.phone, p.payable_amount
+    GROUP BY o.order_id, u.full_name, o.b_name, u.email, o.b_email, u.phone, o.b_phone, p.payable_amount
     ORDER BY MAX(o.id) DESC
 ";
 $stmt_orders = $pdo->prepare($query);

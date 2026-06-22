@@ -23,11 +23,19 @@ if ($action === "login") {
         if ($row['password'] !== $password || $row['status'] !== 'Active') {
             echo "invalid_credentials"; // Password mismatch or inactive account
         } else {
+            // Backup coupon before any possible session changes
+            $backup_coupon = isset($_SESSION['coupon']) ? $_SESSION['coupon'] : null;
+
             $_SESSION['user_id']   = $row['id'];
             $_SESSION['email_id']  = $row['email'];
             $_SESSION['user_name'] = $row['full_name'];
             $_SESSION['phone']     = $row['phone'];
             $_SESSION['flash_message'] = "Welcome back, " . $row['full_name'] . "!";
+
+            if ($backup_coupon !== null) {
+                $_SESSION['coupon'] = $backup_coupon;
+                setcookie("backup_coupon_data", json_encode($backup_coupon), time() + 3600, "/");
+            }
 
             if ($remember === 1) {
                 setcookie("user_id", $row['id'], time() + (86400 * 30), "/");
@@ -64,7 +72,7 @@ if ($action === "register") {
         //               VALUES('$user_name', '$email_id', '$mobile', '$password', 'Active')";
         // $result = mysqli_query($con, $query_reg);
         
-        // Register user
+// Register user
 $query_reg = "INSERT INTO tbl_user(full_name, email, phone, password, status, photo, role) 
 VALUES('$user_name', '$email_id', '$mobile', '$password', 'Active', 'default.png', 'user')";
 
@@ -72,11 +80,20 @@ $result = mysqli_query($con, $query_reg);
 
         if ($result) {
             $user_id = mysqli_insert_id($con);
+
+            // Backup coupon
+            $backup_coupon = isset($_SESSION['coupon']) ? $_SESSION['coupon'] : null;
+
             $_SESSION['user_id']   = $user_id;
             $_SESSION['email_id']  = $email_id;
             $_SESSION['user_name'] = $user_name;
             $_SESSION['phone']     = $mobile;
             $_SESSION['flash_message'] = "Welcome, $user_name!";
+
+            if ($backup_coupon !== null) {
+                $_SESSION['coupon'] = $backup_coupon;
+                setcookie("backup_coupon_data", json_encode($backup_coupon), time() + 3600, "/");
+            }
 
             // Update cart if temp user exists
             if (!empty($_SESSION['temp_user_id'])) {
