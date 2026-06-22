@@ -91,6 +91,12 @@ if(isset($_POST['pay_request'])) {
         }
     }
 
+    // Fallback: If there is still remaining amount (due to earnings outside specific coupon assignments)
+    if ($remaining_to_pay > 0) {
+        $st2 = $pdo->prepare("INSERT INTO tbl_commission_payment (user_id, coupon_id, amount_paid, payment_date) VALUES (?, 0, ?, ?)");
+        $st2->execute([$user_id, $remaining_to_pay, $payment_date]);
+    }
+
     // 3. Mark pending commissions as paid
     $st_upd = $pdo->prepare("UPDATE tbl_affiliate_commission SET status = 'Paid' WHERE user_id = ? AND status = 'Pending'");
     $st_upd->execute([$user_id]);
