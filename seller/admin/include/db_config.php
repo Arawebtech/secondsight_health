@@ -27,6 +27,8 @@ $dbpass = 'Solutions@321@';
 // $password2 = "";
 // $dbname2   = "new_jhbewdmy_ssf_in";
 
+// kk
+
 $conn3 = mysqli_connect($servername, $username2, $password2, $dbname2);
 
 if (! $conn3) {
