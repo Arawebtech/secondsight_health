@@ -22,7 +22,7 @@ date_default_timezone_set('Asia/Kolkata');
 // ==============================
 // 🌐 BASE URL (FIXED - IMPORTANT)
 // ==============================
-// define("BASE_URL", "http://localhost/araweb/health/");
+// define("BASE_URL", "http://localhost/araweb/vps-secondsight_health/");
 
 
 define("BASE_URL", "https://ssfhealth.in/");

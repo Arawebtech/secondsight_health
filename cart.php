@@ -87,6 +87,7 @@ if (isset($_SESSION['flash_message'])) {
                     $p_total_weight = 0;
                     $btn_disable = "";
                     $has_items = false;
+                    $eligible_total = 0;
         
                     while ($data_cart = mysqli_fetch_assoc($result_cart)) {
                         $has_items = true;
@@ -123,6 +124,11 @@ if (isset($_SESSION['flash_message'])) {
                         $sub_total += $p_base_total; // BASE total
                         $gst += $p_gst_total;        
                         $total += $p_actual_total;   
+
+                        $coupon_p_id_check = isset($_SESSION['coupon']['p_id']) ? (int)$_SESSION['coupon']['p_id'] : 0;
+                        if ($coupon_p_id_check === 0 || (int)$p_id === $coupon_p_id_check) {
+                            $eligible_total += $p_actual_total;
+                        }
                         ?>
                         <div class="cart-item" data-id="<?= $p_id; ?>" data-stock="<?= $available_qty; ?>" data-price="<?= $data_cart['p_price']; ?>" 
                             data-gst="<?= $data_cart['p_gst']; ?>" >
@@ -152,6 +158,31 @@ if (isset($_SESSION['flash_message'])) {
         
                     <?php } ?>
         
+                    <?php 
+                    if (isset($_SESSION['coupon']) && is_array($_SESSION['coupon']) && $eligible_total > 0) {
+                        $c_code = mysqli_real_escape_string($con, $_SESSION['coupon']['code']);
+                        $c_query = "SELECT amount, type, p_id FROM tbl_coupon WHERE coupon_code = '$c_code' LIMIT 1";
+                        $c_res = mysqli_query($con, $c_query);
+                        if ($c_res && mysqli_num_rows($c_res) > 0) {
+                            $c_row = mysqli_fetch_assoc($c_res);
+                            $c_amount = (float)$c_row['amount'];
+                            $c_type = $c_row['type'];
+                            
+                            if ($c_type === 'percent') {
+                                $coupon_amount = min($eligible_total, ($eligible_total * $c_amount / 100));
+                            } else {
+                                $coupon_amount = min($eligible_total, $c_amount);
+                            }
+                            $_SESSION['coupon']['amount'] = $coupon_amount;
+                            $_SESSION['coupon']['type'] = $c_type;
+                            $_SESSION['coupon']['p_id'] = $c_row['p_id'];
+                        }
+                    } elseif (isset($_SESSION['coupon']) && $eligible_total <= 0) {
+                        $coupon_amount = 0;
+                        $_SESSION['coupon']['amount'] = 0;
+                    }
+                    ?>
+
                     <?php if (!$has_items): ?>
                         <div class="empty-cart text-center py-5">
                             <i class="fas fa-shopping-cart fa-3x text-muted"></i>
