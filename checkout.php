@@ -337,6 +337,18 @@
 
     $insertOrderQuery = "INSERT INTO tbl_order (user_id, order_id, p_id, p_name, p_color, p_size, p_price, p_actual_price, p_gst, gst_Amount, igst, igst_Amount, cgst, cgst_Amount, sgst, sgst_Amount, p_image, p_quantity, no_of_item, weight, unit, sku, applied_coupon, commission_user_id, b_name, b_phone, b_email, b_building, b_street, b_landmark, b_town, b_district, b_state, b_pincode, b_gst, s_name, s_phone, s_email, s_building, s_street, s_landmark, s_town, s_district, s_state, s_pincode, s_gst, billing_address, shipping_address, order_status, order_date) VALUES ";
 
+    $coupon_p_id   = $_SESSION['coupon']['p_id'] ?? 0;
+    
+    // Calculate total eligible amount for proportional coupon distribution
+    $eligible_total = 0;
+    $query_cart_calc  = "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
+    $result_cart_calc = mysqli_query($con, $query_cart_calc);
+    while ($ct = mysqli_fetch_assoc($result_cart_calc)) {
+        if ($coupon_p_id == 0 || $coupon_p_id == $ct['p_id']) {
+            $eligible_total += $ct['p_actual_price'] * $ct['no_of_item'];
+        }
+    }
+
     $values      = [];
     $query_cart  = "SELECT * FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
     $result_cart = mysqli_query($con, $query_cart);
@@ -406,7 +418,14 @@
 
             if ($row_cp) {
                 $commission_perc = $row_cp['percentage'];
-                $commission_amt  = ($p_actual_price * $no_of_item) * ($commission_perc / 100);
+                
+                $item_total = $p_actual_price * $no_of_item;
+                $item_discount = 0;
+                if ($coupon_amount > 0 && $eligible_total > 0 && ($coupon_p_id == 0 || $coupon_p_id == $p_id)) {
+                    $item_discount = ($item_total / $eligible_total) * $coupon_amount;
+                }
+                $effective_price_paid = max(0, $item_total - $item_discount);
+                $commission_amt  = $effective_price_paid * ($commission_perc / 100);
 
                 // Store commission record
                 $stmt_ins_comm = $pdo->prepare("INSERT INTO tbl_affiliate_commission (order_id, p_id, user_id, buyer_id, commission_percentage, commission_amount, order_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
