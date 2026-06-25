@@ -6,7 +6,7 @@ include("payu_config.php"); // has $MERCHANT_KEY, $SALT, $PAYU_BASE_URL
 
 // fallback base url
 if (empty($base_url)) {
-    $base_url = "https://secondsightfoundation.in/";  // replace with your real domain
+    $base_url = "https://ssfhealth.in/";  // replace with your real domain
 }
 
 // Get payment data

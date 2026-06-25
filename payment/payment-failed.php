@@ -59,7 +59,7 @@ $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 
 mail("gurujimanishsharma@gmail.com", $subject, $body, $headers);
 
-$base_url = "https://secondsightfoundation.in/";
+$base_url = "https://ssfhealth.in/";
 ?>
 <!DOCTYPE html>
 <html lang="en">

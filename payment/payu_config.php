@@ -5,6 +5,6 @@ $PAYU_BASE_URL = "https://secure.payu.in/_payment"; // Sandbox
 
 // ✅ Define base_url here if not set already
 if (empty($base_url)) {
-    $base_url = "https://secondsightfoundation.in/";  // replace with your real domain
+    $base_url = "https://ssfhealth.in/";  // replace with your real domain
 }
 ?>

@@ -69,7 +69,7 @@ mail($to_mail, $subject, $body, $headers);
 // Send copy to admin
 mail("gurujimanishsharma@gmail.com", "New Order Received - #{$order_id}", $body, $headers);
 
-$base_url = "https://secondsightfoundation.in/";
+$base_url = "https://ssfhealth.in/";
 ?>
 
 
