@@ -90,6 +90,7 @@ if ($existing_item) {
     $result_update = mysqli_query($con, $update_query);
 
     if ($result_update) {
+        unset($_SESSION['coupon_removed']);
         echo json_encode(['success' => 'Product quantity updated successfully']);
     } else {
         echo json_encode(['error' => 'Failed to update cart']);
@@ -100,6 +101,7 @@ if ($existing_item) {
     $result_ins = mysqli_query($con, $query_ins);
 
     if ($result_ins) {
+        unset($_SESSION['coupon_removed']);
         echo json_encode(['success' => 'Product Added Successfully']);
     } else {
         echo json_encode(['error' => 'Failed to add product to cart']);

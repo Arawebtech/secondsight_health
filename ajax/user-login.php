@@ -1,6 +1,7 @@
 <?php
 session_start();
 include("../admin/inc/config.php");
+require_once __DIR__ . '/../include/referral_coupon.php';
 
 header('Content-Type: text/plain'); // ensure plain text response
 
@@ -32,11 +33,6 @@ if ($action === "login") {
             $_SESSION['phone']     = $row['phone'];
             $_SESSION['flash_message'] = "Welcome back, " . $row['full_name'] . "!";
 
-            if ($backup_coupon !== null) {
-                $_SESSION['coupon'] = $backup_coupon;
-                setcookie("backup_coupon_data", json_encode($backup_coupon), time() + 3600, "/");
-            }
-
             if ($remember === 1) {
                 setcookie("user_id", $row['id'], time() + (86400 * 30), "/");
             }
@@ -44,10 +40,18 @@ if ($action === "login") {
             // Update cart if temp user exists
             if (!empty($_SESSION['temp_user_id'])) {
                 $temp_user_id = $_SESSION['temp_user_id'];
-                $_SESSION['temp_user_id'] = "";
+                unset($_SESSION['temp_user_id']);
                 $user_id = $_SESSION['user_id'];
                 $query_update = "UPDATE tbl_cart SET user_id = '$user_id' WHERE user_id = '$temp_user_id'";
                 mysqli_query($con, $query_update);
+            }
+
+            referral_restore_from_cookies();
+            if (referral_has_active() && !isset($_SESSION['coupon_removed'])) {
+                referral_apply_coupon($_SESSION['user_id']);
+            } elseif ($backup_coupon !== null) {
+                $_SESSION['coupon'] = $backup_coupon;
+                referral_persist_coupon_session($backup_coupon);
             }
 
             echo "success";
@@ -90,19 +94,22 @@ $result = mysqli_query($con, $query_reg);
             $_SESSION['phone']     = $mobile;
             $_SESSION['flash_message'] = "Welcome, $user_name!";
 
-            if ($backup_coupon !== null) {
-                $_SESSION['coupon'] = $backup_coupon;
-                setcookie("backup_coupon_data", json_encode($backup_coupon), time() + 3600, "/");
-            }
-
             // Update cart if temp user exists
             if (!empty($_SESSION['temp_user_id'])) {
                 $temp_user_id = $_SESSION['temp_user_id'];
-                $_SESSION['temp_user_id'] = "";
+                unset($_SESSION['temp_user_id']);
                 $query_update = "UPDATE tbl_cart 
                                  SET user_id = '$user_id' 
                                  WHERE user_id = '$temp_user_id'";
                 mysqli_query($con, $query_update);
+            }
+
+            referral_restore_from_cookies();
+            if (referral_has_active() && !isset($_SESSION['coupon_removed'])) {
+                referral_apply_coupon($_SESSION['user_id']);
+            } elseif ($backup_coupon !== null) {
+                $_SESSION['coupon'] = $backup_coupon;
+                referral_persist_coupon_session($backup_coupon);
             }
 
             echo "success";

@@ -86,7 +86,8 @@
     }
 
     // --- Auto-apply Referral Coupon ---
-    if ($user_id && ! isset($_SESSION['coupon']) && ! isset($_SESSION['coupon_removed'])) {
+    $has_ref = isset($_SESSION['ref_user_id']) || !empty($_SESSION['product_ref']);
+    if ($user_id && $has_ref && !isset($_SESSION['coupon_removed'])) {
     if ($con) {
         $q_cart_items = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
         if ($q_cart_items && mysqli_num_rows($q_cart_items) > 0) {
@@ -176,6 +177,33 @@
             $total_cart_items = (int) ($row_count['total'] ?? 0);
         }
     }
+    }
+
+    // Fetch Seller Name for Header Display
+    $seller_name_for_header = null;
+    $active_ref_id = null;
+
+    if (isset($_GET['ref'])) {
+        $active_ref_id = $_GET['ref'];
+    } elseif (isset($p_id) && isset($_SESSION['product_ref'][$p_id])) {
+        $active_ref_id = $_SESSION['product_ref'][$p_id];
+    } elseif (isset($_SESSION['ref_user_id'])) {
+        $active_ref_id = $_SESSION['ref_user_id'];
+    } elseif (!empty($_SESSION['product_ref'])) {
+        $active_ref_id = reset($_SESSION['product_ref']);
+    }
+
+    if ($active_ref_id) {
+        if (is_numeric($active_ref_id)) {
+            $stmt_ref_name = $pdo->prepare("SELECT full_name FROM tbl_user WHERE id = ? AND status = 'Active' LIMIT 1");
+            $stmt_ref_name->execute([intval($active_ref_id)]);
+        } else {
+            $stmt_ref_name = $pdo->prepare("SELECT full_name FROM tbl_user WHERE ref_code = ? AND status = 'Active' LIMIT 1");
+            $stmt_ref_name->execute([$active_ref_id]);
+        }
+        if ($stmt_ref_name->rowCount() > 0) {
+            $seller_name_for_header = $stmt_ref_name->fetchColumn();
+        }
     }
 ?>
 
@@ -466,6 +494,14 @@
           <img src="<?php echo $base_url; ?>assets/images/header2.png" alt="Logo" style="height: 60px;">
         </a>
         <ul class="navbar-nav gap-4 mx-auto">
+          <?php if (!empty($seller_name_for_header)): ?>
+            <li class="nav-item d-flex align-items-center">
+              <span class="nav-link fw-bold text-dark" style="font-size: 22px;">
+                <i class="fa fa-user-circle" style="color: #fdc134;"></i> 
+                <?php echo htmlspecialchars($seller_name_for_header); ?>
+              </span>
+            </li>
+          <?php endif; ?>
           <!-- <li class="nav-item"><a class="nav-link fw-semibold text-secondary " href="<?php echo $base_url; ?>index.php">Home</a></li>
           <li class="nav-item"><a class="nav-link fw-semibold text-secondary " href="<?php echo $base_url; ?>about-us.php">About Us</a></li>
           <li class="nav-item"><a class="nav-link fw-semibold text-secondary " href="<?php echo $base_url; ?>products.php">Shop</a></li>

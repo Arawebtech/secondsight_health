@@ -404,17 +404,26 @@
         $commission_perc         = 0;
         $commission_amt          = 0;
 
-        // 1. Check product-specific referral first (STRICT MODE)
+        // 1. Check product-specific referral first
         if (isset($_SESSION['product_ref'][$p_id])) {
             $item_commission_user_id = $_SESSION['product_ref'][$p_id];
+        } elseif (isset($_SESSION['ref_user_id'])) {
+            $item_commission_user_id = $_SESSION['ref_user_id'];
         }
 
         if ($item_commission_user_id > 0) {
             // Fetch commission percentage from tbl_user_coupon
-            // Priority: Specific Product > General assignment for this user
-            $stmt_cp = $pdo->prepare("SELECT percentage FROM tbl_user_coupon WHERE user_id = ? AND (p_id = ? OR p_id IS NULL) ORDER BY p_id DESC LIMIT 1");
+            // Priority: Specific Product > Generic (0 or NULL) > Any assignment for this user
+            $stmt_cp = $pdo->prepare("SELECT percentage FROM tbl_user_coupon WHERE user_id = ? AND (p_id = ? OR p_id = 0 OR p_id IS NULL) ORDER BY p_id DESC LIMIT 1");
             $stmt_cp->execute([$item_commission_user_id, $p_id]);
             $row_cp = $stmt_cp->fetch(PDO::FETCH_ASSOC);
+            
+            // Fallback: If no strict match, just use any commission percentage assigned to this seller
+            if (!$row_cp) {
+                $stmt_cp2 = $pdo->prepare("SELECT percentage FROM tbl_user_coupon WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+                $stmt_cp2->execute([$item_commission_user_id]);
+                $row_cp = $stmt_cp2->fetch(PDO::FETCH_ASSOC);
+            }
 
             if ($row_cp) {
                 $commission_perc = $row_cp['percentage'];

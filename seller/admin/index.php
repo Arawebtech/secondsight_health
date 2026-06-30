@@ -6,19 +6,19 @@ include("Classes/users.class.php");
 $userdata = new users();
 
 if (isset($_POST['submit']) and $_POST['submit'] == 'Sign in') {
-  $phone = $_POST['username'];
-  $password = $_POST['password'];
-  
-  $result_user = $userdata->userLogin($phone, $password);
-  $count_user = $result_user->num_rows;
-  
-  if ($count_user > 0) {
-    $row = mysqli_fetch_object($result_user);
-    $_SESSION['username'] = $row;
-    echo "<script>window.open('dashboard.php','_self')</script>";
-  } else {
-    $error = '<div class="alert alert-danger" role="alert">Username or password wrong.</div>';
-  }
+    $phone = $_POST['username'];
+    $password = $_POST['password'];
+
+    $result_user = $userdata->userLogin($phone, $password);
+    $count_user = $result_user->num_rows;
+
+    if ($count_user > 0) {
+        $row = mysqli_fetch_object($result_user);
+        $_SESSION['username'] = $row;
+        echo "<script>window.open('dashboard.php','_self')</script>";
+    } else {
+        $error = '<div class="alert alert-danger" role="alert">Username or password wrong.</div>';
+    }
 }
 ?>
 
@@ -28,10 +28,10 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Sign in') {
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Diamond Furniture</title>
-    <link rel="icon" type="image/png" sizes="192x192" href="../assets/imgs/fab.png">
+    <title>ssfhealth</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="../images/logo-fav.png">
     <!--<link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicon.jpg">-->
-    
+
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
 
@@ -45,9 +45,9 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Sign in') {
     <link rel="stylesheet" href="dist/css/AdminLTE.min.css">
     <!-- iCheck -->
     <link rel="stylesheet" href="plugins/iCheck/square/blue.css">
-    
 
- <!--<link rel="icon" href="https://arawebtechnologies.in/images/header-logo.png" type="image/x-icon">-->
+
+    <!--<link rel="icon" href="https://arawebtechnologies.in/images/header-logo.png" type="image/x-icon">-->
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
 </head>
@@ -55,15 +55,16 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Sign in') {
 <body class="hold-transition login-page">
     <div class="login-box" style="margin: 5% auto;">
         <div class="login-logo">
-            <img src="../assets/imgs/head-logo.png" height="100px;" width="300px">
+
+            <img src="../images/header2.png" alt="Logo" style="height: 100px; width: auto; max-width: 100%;">
             <!--<a href="#"><b>IEC </b>PORTAL </a>-->
         </div>
         <!-- /.login-logo -->
         <div class="login-box-body">
             <p class="login-box-msg">Sign in to start your session</p>
             <?php if (isset($error)) {
-        echo $error;
-      } ?>
+                echo $error;
+            } ?>
             <form method="post">
                 <div class="form-group has-feedback">
                     <input type="text" name="username" class="form-control" placeholder="Username">
@@ -103,13 +104,13 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Sign in') {
     <!-- iCheck -->
     <script src="plugins/iCheck/icheck.min.js"></script>
     <script>
-    $(function() {
-        $('input').iCheck({
-            checkboxClass: 'icheckbox_square-blue',
-            radioClass: 'iradio_square-blue',
-            increaseArea: '20%' // optional
+        $(function() {
+            $('input').iCheck({
+                checkboxClass: 'icheckbox_square-blue',
+                radioClass: 'iradio_square-blue',
+                increaseArea: '20%' // optional
+            });
         });
-    });
     </script>
 </body>
 

@@ -46,35 +46,12 @@ $percentage = $_GET['percent'] ?? 0;
 							$p_id = $_GET['pid'] ?? '';
 							
                             // Fetch all products joined with their recorded commission
-                            if (!empty($coupon_code) && !empty($p_id)) {
-                                $stmt = $pdo->prepare("SELECT o.*, ac.commission_amount 
-                                                       FROM tbl_order o 
-                                                       JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                       WHERE ac.user_id = ? AND (LOWER(o.applied_coupon) = LOWER(?) OR o.p_id = ?) AND o.order_status = 'Success' 
-                                                       ORDER BY o.id DESC");
-                                $stmt->execute([$user_id, $coupon_code, $p_id]);
-                            } elseif (!empty($coupon_code)) {
-                                $stmt = $pdo->prepare("SELECT o.*, ac.commission_amount 
-                                                       FROM tbl_order o 
-                                                       JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                       WHERE ac.user_id = ? AND LOWER(o.applied_coupon) = LOWER(?) AND o.order_status = 'Success' 
-                                                       ORDER BY o.id DESC");
-                                $stmt->execute([$user_id, $coupon_code]);
-                            } elseif (!empty($p_id)) {
-                                $stmt = $pdo->prepare("SELECT o.*, ac.commission_amount 
-                                                       FROM tbl_order o 
-                                                       JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                       WHERE ac.user_id = ? AND o.p_id = ? AND o.order_status = 'Success' 
-                                                       ORDER BY o.id DESC");
-                                $stmt->execute([$user_id, $p_id]);
-                            } else {
-                                $stmt = $pdo->prepare("SELECT o.*, ac.commission_amount 
-                                                       FROM tbl_order o 
-                                                       JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                       WHERE ac.user_id = ? AND o.order_status = 'Success' 
-                                                       ORDER BY o.id DESC");
-                                $stmt->execute([$user_id]);
-                            }
+                            $stmt = $pdo->prepare("SELECT o.*, ac.commission_amount 
+                                                   FROM tbl_order o 
+                                                   JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
+                                                   WHERE ac.user_id = ? AND ac.commission_percentage = ? AND o.order_status = 'Success' 
+                                                   ORDER BY o.id DESC");
+                            $stmt->execute([$user_id, $percentage]);
                             
                             $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

@@ -34,12 +34,60 @@ if (isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['temp_user_id'];
 }
 
+// Restore referral from cookies if not in session
+if (isset($_COOKIE['ref_user_id']) && !isset($_SESSION['ref_user_id'])) {
+    $_SESSION['ref_user_id'] = intval($_COOKIE['ref_user_id']);
+}
+
+if (! isset($_SESSION['product_ref']) || ! is_array($_SESSION['product_ref'])) {
+    $_SESSION['product_ref'] = [];
+}
+// Restore product-specific referrals from cookies
+foreach ($_COOKIE as $key => $val) {
+    if (strpos($key, 'prod_ref_') === 0) {
+        $prod_id = intval(substr($key, 9));
+        if (!isset($_SESSION['product_ref'][$prod_id])) {
+            $_SESSION['product_ref'][$prod_id] = intval($val);
+        }
+    }
+}
+
+// Restore from cookie if session was lost during login redirect
+if (isset($_COOKIE['backup_coupon_data']) && !empty($_COOKIE['backup_coupon_data'])) {
+    $decoded_coupon = json_decode($_COOKIE['backup_coupon_data'], true);
+    if (is_array($decoded_coupon) && !empty($decoded_coupon['code'])) {
+        $_SESSION['coupon'] = $decoded_coupon;
+    }
+    setcookie("backup_coupon_data", "", time() - 3600, "/"); // Clear the cookie
+}
+
+// Validate existing session coupon against current cart
+if (isset($_SESSION['coupon']) && is_array($_SESSION['coupon']) && $con) {
+    $coupon_p_id_check = isset($_SESSION['coupon']['p_id']) ? (int)$_SESSION['coupon']['p_id'] : 0;
+    
+    $eligible_total_check = 0;
+    $q_cart_check = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
+    if ($q_cart_check && mysqli_num_rows($q_cart_check) > 0) {
+        while ($c_item = mysqli_fetch_assoc($q_cart_check)) {
+            if ($coupon_p_id_check === 0 || (int)$c_item['p_id'] === $coupon_p_id_check) {
+                $eligible_total_check += (float)$c_item['p_actual_price'] * (int)$c_item['no_of_item'];
+            }
+        }
+    }
+    
+    // If the coupon doesn't apply to anything in the cart, unset it so auto-apply can try again
+    if ($eligible_total_check <= 0) {
+        unset($_SESSION['coupon']);
+    }
+}
+
 // Default coupon values
 $coupon_amount = 0;
 $coupon_code = "";
 
 // Auto-apply Referral Coupon if logged in and not yet applied
-if ($user_id && !isset($_SESSION['coupon']) && !isset($_SESSION['coupon_removed'])) {
+$has_ref = isset($_SESSION['ref_user_id']) || !empty($_SESSION['product_ref']);
+if ($user_id && $has_ref && !isset($_SESSION['coupon_removed'])) {
     if ($con) {
         $q_cart_items = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
         if ($q_cart_items && mysqli_num_rows($q_cart_items) > 0) {
@@ -105,7 +153,7 @@ if ($user_id && !isset($_SESSION['coupon']) && !isset($_SESSION['coupon_removed'
 }
 
 // Auto-apply Product-specific generic coupon if no coupon is applied
-if (!isset($_SESSION['coupon']) && !isset($_SESSION['coupon_removed'])) {
+if (!isset($_SESSION['coupon'])) {
     if ($con) {
         $q_cart_items = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
         if ($q_cart_items && mysqli_num_rows($q_cart_items) > 0) {
@@ -143,14 +191,6 @@ if (!isset($_SESSION['coupon']) && !isset($_SESSION['coupon_removed'])) {
     }
 }
 
-// Restore from cookie if session was lost during login redirect
-if (isset($_COOKIE['backup_coupon_data']) && !empty($_COOKIE['backup_coupon_data'])) {
-    $decoded_coupon = json_decode($_COOKIE['backup_coupon_data'], true);
-    if (is_array($decoded_coupon) && !empty($decoded_coupon['code'])) {
-        $_SESSION['coupon'] = $decoded_coupon;
-    }
-    setcookie("backup_coupon_data", "", time() - 3600, "/"); // Clear the cookie
-}
 
 // Use existing coupon session data if present
 if (isset($_SESSION['coupon']) && is_array($_SESSION['coupon'])) {
@@ -386,8 +426,23 @@ if (isset($_SESSION['flash_message'])) {
     }
 
     $(document).ready(function() {
-        // Auto-restore coupon from localStorage if session dropped it
         let currentCode = $('#coupon-input').val();
+        
+        // Auto-apply generic coupon via AJAX if none is applied
+        if (!currentCode) {
+            $.ajax({
+                type: "POST",
+                url: "ajax/auto-apply-generic.php",
+                dataType: "json",
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    }
+                }
+            });
+        }
+        
+        // Auto-restore coupon from localStorage if session dropped it
         let backupCode = localStorage.getItem('backup_coupon_code');
         
         if (!currentCode && backupCode) {

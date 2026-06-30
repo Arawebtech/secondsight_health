@@ -49,31 +49,12 @@ if(isset($_POST['pay_request'])) {
     foreach ($assignments as $row) {
         $coupon_code = $row['coupon_code'];
         
-        if (!empty($coupon_code) && !empty($row['p_id'])) {
-            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
-                                          FROM tbl_order o
-                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                          WHERE ac.user_id = ? AND (LOWER(o.applied_coupon) = LOWER(?) OR o.p_id = ?) AND o.order_status = 'Success'");
-            $stmt_orders->execute([$row['user_id'], $coupon_code, $row['p_id']]);
-        } elseif (!empty($coupon_code)) {
-            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
-                                          FROM tbl_order o
-                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                          WHERE ac.user_id = ? AND LOWER(o.applied_coupon) = LOWER(?) AND o.order_status = 'Success'");
-            $stmt_orders->execute([$row['user_id'], $coupon_code]);
-        } elseif (!empty($row['p_id'])) {
-            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
-                                          FROM tbl_order o
-                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                          WHERE ac.user_id = ? AND o.p_id = ? AND o.order_status = 'Success'");
-            $stmt_orders->execute([$row['user_id'], $row['p_id']]);
-        } else {
-            $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
-                                          FROM tbl_order o
-                                          JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                          WHERE ac.user_id = ? AND o.order_status = 'Success'");
-            $stmt_orders->execute([$row['user_id']]);
-        }
+        $percentage = $row['percentage'];
+        $stmt_orders = $pdo->prepare("SELECT SUM(ac.commission_amount) as total_earned
+                                      FROM tbl_order o
+                                      JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
+                                      WHERE ac.user_id = ? AND ac.commission_percentage = ? AND o.order_status = 'Success'");
+        $stmt_orders->execute([$row['user_id'], $percentage]);
         $total_earned = $stmt_orders->fetchColumn() ?: 0;
 
         $stmt_payments = $pdo->prepare("SELECT SUM(amount_paid) as total_paid FROM tbl_commission_payment WHERE user_id = ? AND (coupon_id = ? OR (coupon_id = 0 AND ? = 0))");
@@ -294,39 +275,13 @@ $grand_total_balance = $grand_total_earned - $grand_total_paid;
                                 $percentage = $row['percentage'];
                                 
                                 // Precise Fetch based on commission records
-                                if (!empty($coupon_code) && !empty($row['p_id'])) {
-                                     $stmt_orders = $pdo->prepare("SELECT COUNT(*) as total_items, 
-                                                                          SUM(o.p_actual_price * o.no_of_item) as total_sales,
-                                                                          SUM(ac.commission_amount) as total_earned
-                                                                    FROM tbl_order o
-                                                                    JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                                    WHERE ac.user_id = ? AND (LOWER(o.applied_coupon) = LOWER(?) OR o.p_id = ?) AND o.order_status = 'Success'");
-                                     $stmt_orders->execute([$row['user_id'], $coupon_code, $row['p_id']]);
-                                 } elseif (!empty($coupon_code)) {
-                                     $stmt_orders = $pdo->prepare("SELECT COUNT(*) as total_items, 
-                                                                          SUM(o.p_actual_price * o.no_of_item) as total_sales,
-                                                                          SUM(ac.commission_amount) as total_earned
-                                                                    FROM tbl_order o
-                                                                    JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                                    WHERE ac.user_id = ? AND LOWER(o.applied_coupon) = LOWER(?) AND o.order_status = 'Success'");
-                                     $stmt_orders->execute([$row['user_id'], $coupon_code]);
-                                 } elseif (!empty($row['p_id'])) {
-                                     $stmt_orders = $pdo->prepare("SELECT COUNT(*) as total_items, 
-                                                                          SUM(o.p_actual_price * o.no_of_item) as total_sales,
-                                                                          SUM(ac.commission_amount) as total_earned
-                                                                    FROM tbl_order o
-                                                                    JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                                    WHERE ac.user_id = ? AND o.p_id = ? AND o.order_status = 'Success'");
-                                     $stmt_orders->execute([$row['user_id'], $row['p_id']]);
-                                 } else {
-                                     $stmt_orders = $pdo->prepare("SELECT COUNT(*) as total_items, 
-                                                                          SUM(o.p_actual_price * o.no_of_item) as total_sales,
-                                                                          SUM(ac.commission_amount) as total_earned
-                                                                    FROM tbl_order o
-                                                                    JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
-                                                                    WHERE ac.user_id = ? AND o.order_status = 'Success'");
-                                     $stmt_orders->execute([$row['user_id']]);
-                                 }
+                                $stmt_orders = $pdo->prepare("SELECT COUNT(*) as total_items, 
+                                                                     SUM(o.p_actual_price * o.no_of_item) as total_sales,
+                                                                     SUM(ac.commission_amount) as total_earned
+                                                               FROM tbl_order o
+                                                               JOIN tbl_affiliate_commission ac ON o.order_id = ac.order_id AND o.p_id = ac.p_id
+                                                               WHERE ac.user_id = ? AND ac.commission_percentage = ? AND o.order_status = 'Success'");
+                                $stmt_orders->execute([$row['user_id'], $percentage]);
                                 $order_data = $stmt_orders->fetch(PDO::FETCH_ASSOC);
                                 
                                 $total_items = $order_data['total_items'] ?? 0;

@@ -13,8 +13,8 @@ include('include/db_config.php');
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Diamond Furniture </title>
-  <!--<link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicon.jpg">-->
+  <title>ssfhealth</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="../images/logo-fav.png">
 
   <!-- Tell the browser to be responsive to screen width -->
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
@@ -31,7 +31,6 @@ include('include/db_config.php');
   <!-- AdminLTE Skins. Choose a skin from the css/skins
        folder instead of downloading all of them to reduce the load. -->
   <link rel="stylesheet" href="dist/css/skins/_all-skins.min.css">
-  <link rel="icon" href="../assets/imgs/fab.png" type="image/png">
 
   <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -39,7 +38,6 @@ include('include/db_config.php');
   <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
   <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
   <![endif]-->
-  <link rel="icon" type="image/png" href="https://secondsightfoundation.com/assets/img/logo-fav.png">
 
   <!-- Google Font -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
@@ -58,7 +56,7 @@ include('include/db_config.php');
       <section class="content-header">
         <h1>
           DASHBOARD
-          <small>Version 1.0</small>
+          <!-- <small>Version 1.0</small> -->
         </h1>
         <ol class="breadcrumb">
           <li><a href="#"><i class="fa fa-dashboard"></i> Home </a></li>
@@ -72,22 +70,22 @@ include('include/db_config.php');
         <div class="row">
           <div class="clearfix visible-sm-block"></div>
           <div class="col-md-3 col-sm-6 col-xs-12">
-            <a href="view-blog.php">
+            <a href="view-user.php">
               <div class="info-box">
                 <span class="info-box-icon bg-aqua"><i class="ion ion-ios-gear-outline"></i></span>
                 <div class="info-box-content">
                   <?php
-                  $blogList = "SELECT id FROM blog";
-                  $resultBlog = mysqli_query($conn, $blogList);
-                  $blogCount = $resultBlog->num_rows;
+                  $userList = "SELECT id FROM user";
+                  $resultUser = mysqli_query($conn, $userList);
+                  $userCount = $resultUser ? $resultUser->num_rows : 0;
                   ?>
-                  <span class="info-box-text">Total Sellers</span>
-                  <span class="info-box-number"><?php echo $blogCount; ?><small></small></span>
+                  <span class="info-box-text">Total Users</span>
+                  <span class="info-box-number"><?php echo $userCount; ?></span>
                 </div>
               </div>
             </a>
           </div>
-          <div class="col-md-3 col-sm-6 col-xs-12">
+          <!-- <div class="col-md-3 col-sm-6 col-xs-12">
             <a href="view-payouts.php">
               <div class="info-box">
                 <span class="info-box-icon bg-red"><i class="fa fa-money"></i></span>
@@ -102,7 +100,7 @@ include('include/db_config.php');
                 </div>
               </div>
             </a>
-          </div>
+          </div> -->
         </div>
         <!-- /.row -->
         <div class="clearfix"></div>
