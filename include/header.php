@@ -486,7 +486,10 @@ if ($active_ref_id) {
           <span class="navbar-toggler-icon"></span>
         </button>
       </div>
-      <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+      <div class="collapse navbar-collapse justify-content-center position-relative" id="navbarNav">
+        <!-- Close button for mobile menu -->
+        <button type="button" class="btn-close d-lg-none position-absolute" style="top: 15px; right: 15px; z-index: 1050; width: 1.5em; height: 1.5em;" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Close"></button>
+
         <!-- <a href="<?php echo $base_url; ?>index.php" class="navbar-brand d-flex d-lg-none" style="margin-left:-20px;">
           <img src="<?php echo $base_url; ?>assets/images/header2.png" alt="Logo" style="height: 60px;">
         </a> -->
@@ -614,15 +617,15 @@ if ($active_ref_id) {
         </div>
         <div class="d-lg-none text-center mt-3 d-flex">
           <?php if (isset($_SESSION['user_id'])): ?>
-            <a class="nav-link" href="profile.php">Hi, <?php
+            <a class="nav-link" href="profile.php" data-bs-toggle="collapse" data-bs-target="#navbarNav">Hi, <?php
                                                         $fullName  = $_SESSION['user_name'] ?? 'User';
                                                         $firstName = explode(' ', trim($fullName))[0];
                                                         ?>
               <?php echo htmlspecialchars($firstName); ?></a> <br>
-            <a href="<?php echo $base_url; ?>logout.php"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">Logout</button> </a>
+            <a href="<?php echo $base_url; ?>logout.php" data-bs-toggle="collapse" data-bs-target="#navbarNav"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">Logout</button> </a>
           <?php else: ?>
-            <a href="<?php echo $base_url; ?>login.php"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">LogIn</button></a> <br>
-            <a href="<?php echo $base_url; ?>login.php#registerBox"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">Signup</button> </a><br>
+            <a href="<?php echo $base_url; ?>login.php" data-bs-toggle="collapse" data-bs-target="#navbarNav"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">LogIn</button></a> <br>
+            <a href="<?php echo $base_url; ?>login.php#registerBox" data-bs-toggle="collapse" data-bs-target="#navbarNav"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">Signup</button> </a><br>
           <?php endif; ?>
         </div>
       </div>
