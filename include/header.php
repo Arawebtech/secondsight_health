@@ -1,210 +1,210 @@
 <?php
-    require_once "admin/inc/config.php";
-    $base_url = BASE_URL;
+require_once "admin/inc/config.php";
+$base_url = BASE_URL;
 
-    // Restore session from cookie if user_id is not set
-    if (! isset($_SESSION['user_id']) && isset($_COOKIE['user_id'])) {
-    $cookie_user_id = intval($_COOKIE['user_id']);
-    $query          = "SELECT * FROM tbl_user WHERE id = '$cookie_user_id' AND status='Active' LIMIT 1";
-    $result         = mysqli_query($con, $query);
-    if ($result && mysqli_num_rows($result) == 1) {
-        $row                   = mysqli_fetch_assoc($result);
-        $_SESSION['user_id']   = $row['id'];
-        $_SESSION['email_id']  = $row['email'];
-        $_SESSION['user_name'] = $row['full_name'];
-        $_SESSION['phone']     = $row['phone'];
+// Restore session from cookie if user_id is not set
+if (! isset($_SESSION['user_id']) && isset($_COOKIE['user_id'])) {
+  $cookie_user_id = intval($_COOKIE['user_id']);
+  $query          = "SELECT * FROM tbl_user WHERE id = '$cookie_user_id' AND status='Active' LIMIT 1";
+  $result         = mysqli_query($con, $query);
+  if ($result && mysqli_num_rows($result) == 1) {
+    $row                   = mysqli_fetch_assoc($result);
+    $_SESSION['user_id']   = $row['id'];
+    $_SESSION['email_id']  = $row['email'];
+    $_SESSION['user_name'] = $row['full_name'];
+    $_SESSION['phone']     = $row['phone'];
+  }
+}
+
+if (isset($_SESSION['user_id'])) {
+  $user_id = $_SESSION['user_id'];
+} else if (isset($_SESSION['temp_user_id'])) {
+  $user_id = $_SESSION['temp_user_id'];
+}
+
+// --- Referral Tracking ---
+if (isset($_GET['ref'])) {
+  unset($_SESSION['coupon_removed']);
+}
+
+// Restore referral from cookies if not in session
+if (isset($_COOKIE['ref_user_id']) && !isset($_SESSION['ref_user_id'])) {
+  $_SESSION['ref_user_id'] = intval($_COOKIE['ref_user_id']);
+}
+
+if (! isset($_SESSION['product_ref']) || ! is_array($_SESSION['product_ref'])) {
+  $_SESSION['product_ref'] = [];
+}
+// Restore product-specific referrals from cookies
+foreach ($_COOKIE as $key => $val) {
+  if (strpos($key, 'prod_ref_') === 0) {
+    $prod_id = intval(substr($key, 9));
+    if (!isset($_SESSION['product_ref'][$prod_id])) {
+      $_SESSION['product_ref'][$prod_id] = intval($val);
     }
-    }
+  }
+}
 
-    if (isset($_SESSION['user_id'])) {
-    $user_id = $_SESSION['user_id'];
-    } else if (isset($_SESSION['temp_user_id'])) {
-    $user_id = $_SESSION['temp_user_id'];
-    }
+if (isset($p_id)) {
+  // If we are on a product page, check for 'ref'
+  if (isset($_GET['ref'])) {
+    $ref_val    = $_GET['ref'];
+    $partner_id = 0;
 
-    // --- Referral Tracking ---
-    if (isset($_GET['ref'])) {
-        unset($_SESSION['coupon_removed']);
-    }
-
-    // Restore referral from cookies if not in session
-    if (isset($_COOKIE['ref_user_id']) && !isset($_SESSION['ref_user_id'])) {
-        $_SESSION['ref_user_id'] = intval($_COOKIE['ref_user_id']);
-    }
-
-    if (! isset($_SESSION['product_ref']) || ! is_array($_SESSION['product_ref'])) {
-        $_SESSION['product_ref'] = [];
-    }
-    // Restore product-specific referrals from cookies
-    foreach ($_COOKIE as $key => $val) {
-        if (strpos($key, 'prod_ref_') === 0) {
-            $prod_id = intval(substr($key, 9));
-            if (!isset($_SESSION['product_ref'][$prod_id])) {
-                $_SESSION['product_ref'][$prod_id] = intval($val);
-            }
-        }
-    }
-
-    if (isset($p_id)) {
-        // If we are on a product page, check for 'ref'
-        if (isset($_GET['ref'])) {
-            $ref_val    = $_GET['ref'];
-            $partner_id = 0;
-
-            // Check if ref is numeric (ID) or string (ref_code)
-            if (is_numeric($ref_val)) {
-                $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE id = ? AND status = 'Active' LIMIT 1");
-                $stmt_ref->execute([intval($ref_val)]);
-            } else {
-                $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE ref_code = ? AND status = 'Active' LIMIT 1");
-                $stmt_ref->execute([$ref_val]);
-            }
-
-            if ($stmt_ref->rowCount() > 0) {
-                $partner_id                     = $stmt_ref->fetchColumn();
-                $_SESSION['product_ref'][$p_id] = $partner_id;
-                setcookie("prod_ref_" . $p_id, $partner_id, time() + (86400 * 30), "/");
-            }
-        }
+    // Check if ref is numeric (ID) or string (ref_code)
+    if (is_numeric($ref_val)) {
+      $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE id = ? AND status = 'Active' LIMIT 1");
+      $stmt_ref->execute([intval($ref_val)]);
     } else {
-        // General referral (homepage/other pages)
-        if (isset($_GET['ref'])) {
-            $ref_val = $_GET['ref'];
-            if (is_numeric($ref_val)) {
-                $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE id = ? AND status = 'Active' LIMIT 1");
-                $stmt_ref->execute([intval($ref_val)]);
-            } else {
-                $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE ref_code = ? AND status = 'Active' LIMIT 1");
-                $stmt_ref->execute([$ref_val]);
-            }
-            if ($stmt_ref->rowCount() > 0) {
-                $p_id_ref = $stmt_ref->fetchColumn();
-                $_SESSION['ref_user_id'] = $p_id_ref;
-                setcookie("ref_user_id", $p_id_ref, time() + (86400 * 30), "/");
-            }
-        }
+      $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE ref_code = ? AND status = 'Active' LIMIT 1");
+      $stmt_ref->execute([$ref_val]);
     }
 
-    // --- Auto-apply Referral Coupon ---
-    $has_ref = isset($_SESSION['ref_user_id']) || !empty($_SESSION['product_ref']);
-    if ($user_id && $has_ref && !isset($_SESSION['coupon_removed'])) {
-    if ($con) {
-        $q_cart_items = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
-        if ($q_cart_items && mysqli_num_rows($q_cart_items) > 0) {
-            $cart_items = [];
-            while ($c_row = mysqli_fetch_assoc($q_cart_items)) {
-                $cart_items[] = $c_row;
-            }
+    if ($stmt_ref->rowCount() > 0) {
+      $partner_id                     = $stmt_ref->fetchColumn();
+      $_SESSION['product_ref'][$p_id] = $partner_id;
+      setcookie("prod_ref_" . $p_id, $partner_id, time() + (86400 * 30), "/");
+    }
+  }
+} else {
+  // General referral (homepage/other pages)
+  if (isset($_GET['ref'])) {
+    $ref_val = $_GET['ref'];
+    if (is_numeric($ref_val)) {
+      $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE id = ? AND status = 'Active' LIMIT 1");
+      $stmt_ref->execute([intval($ref_val)]);
+    } else {
+      $stmt_ref = $pdo->prepare("SELECT id FROM tbl_user WHERE ref_code = ? AND status = 'Active' LIMIT 1");
+      $stmt_ref->execute([$ref_val]);
+    }
+    if ($stmt_ref->rowCount() > 0) {
+      $p_id_ref = $stmt_ref->fetchColumn();
+      $_SESSION['ref_user_id'] = $p_id_ref;
+      setcookie("ref_user_id", $p_id_ref, time() + (86400 * 30), "/");
+    }
+  }
+}
 
-            foreach ($cart_items as $item) {
-                $item_p_id  = $item['p_id'];
-                $partner_id = 0;
+// --- Auto-apply Referral Coupon ---
+$has_ref = isset($_SESSION['ref_user_id']) || !empty($_SESSION['product_ref']);
+if ($user_id && $has_ref && !isset($_SESSION['coupon_removed'])) {
+  if ($con) {
+    $q_cart_items = mysqli_query($con, "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'");
+    if ($q_cart_items && mysqli_num_rows($q_cart_items) > 0) {
+      $cart_items = [];
+      while ($c_row = mysqli_fetch_assoc($q_cart_items)) {
+        $cart_items[] = $c_row;
+      }
 
-                if (isset($_SESSION['product_ref'][$item_p_id])) {
-                    $partner_id = $_SESSION['product_ref'][$item_p_id];
-                } elseif (isset($_SESSION['ref_user_id'])) {
-                    $partner_id = $_SESSION['ref_user_id'];
-                }
+      foreach ($cart_items as $item) {
+        $item_p_id  = $item['p_id'];
+        $partner_id = 0;
 
-                if ($partner_id > 0) {
-                    $stmt_cp = $pdo->prepare("
+        if (isset($_SESSION['product_ref'][$item_p_id])) {
+          $partner_id = $_SESSION['product_ref'][$item_p_id];
+        } elseif (isset($_SESSION['ref_user_id'])) {
+          $partner_id = $_SESSION['ref_user_id'];
+        }
+
+        if ($partner_id > 0) {
+          $stmt_cp = $pdo->prepare("
                         SELECT uc.*, c.coupon_code, c.amount as coupon_amount, c.type as coupon_type, c.p_id as coupon_p_id
                         FROM tbl_user_coupon uc
                         JOIN tbl_coupon c ON uc.coupon_id = c.id
                         WHERE uc.user_id = ? AND (uc.p_id = ? OR uc.p_id IS NULL OR uc.p_id = 0)
                         LIMIT 1
                     ");
-                    $stmt_cp->execute([$partner_id, $item_p_id]);
-                    $uc_data = $stmt_cp->fetch(PDO::FETCH_ASSOC);
+          $stmt_cp->execute([$partner_id, $item_p_id]);
+          $uc_data = $stmt_cp->fetch(PDO::FETCH_ASSOC);
 
-                    if ($uc_data) {
-                        $coupon_code   = $uc_data['coupon_code'];
-                        $coupon_amount = (float) $uc_data['coupon_amount'];
-                        $coupon_type   = $uc_data['coupon_type'];
-                        $coupon_p_id   = (int) $uc_data['coupon_p_id'];
+          if ($uc_data) {
+            $coupon_code   = $uc_data['coupon_code'];
+            $coupon_amount = (float) $uc_data['coupon_amount'];
+            $coupon_type   = $uc_data['coupon_type'];
+            $coupon_p_id   = (int) $uc_data['coupon_p_id'];
 
-                        $eligible_total = 0.0;
-                        foreach ($cart_items as $c_item) {
-                            if ($coupon_p_id === 0 || (int) $c_item['p_id'] === $coupon_p_id) {
-                                $eligible_total += (float) $c_item['p_actual_price'] * (int) $c_item['no_of_item'];
-                            }
-                        }
-
-                        if ($eligible_total > 0) {
-                            if ($coupon_type === 'percent') {
-                                $discount_amt = min($eligible_total, ($eligible_total * $coupon_amount / 100));
-                            } else {
-                                $discount_amt = min($eligible_total, $coupon_amount);
-                            }
-
-                            $_SESSION['coupon'] = [
-                                'code'   => $coupon_code,
-                                'amount' => $discount_amt,
-                                'p_id'   => $coupon_p_id,
-                                'type'   => $coupon_type,
-                            ];
-                            break;
-                        }
-                    }
-                }
+            $eligible_total = 0.0;
+            foreach ($cart_items as $c_item) {
+              if ($coupon_p_id === 0 || (int) $c_item['p_id'] === $coupon_p_id) {
+                $eligible_total += (float) $c_item['p_actual_price'] * (int) $c_item['no_of_item'];
+              }
             }
+
+            if ($eligible_total > 0) {
+              if ($coupon_type === 'percent') {
+                $discount_amt = min($eligible_total, ($eligible_total * $coupon_amount / 100));
+              } else {
+                $discount_amt = min($eligible_total, $coupon_amount);
+              }
+
+              $_SESSION['coupon'] = [
+                'code'   => $coupon_code,
+                'amount' => $discount_amt,
+                'p_id'   => $coupon_p_id,
+                'type'   => $coupon_type,
+              ];
+              break;
+            }
+          }
         }
+      }
     }
-    }
+  }
+}
 
-    $taglines = [];
+$taglines = [];
 
-    try {
-    $statement = $pdo->prepare("SELECT tagline FROM tbl_tagline ORDER BY id ASC");
-    $statement->execute();
-    $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+try {
+  $statement = $pdo->prepare("SELECT tagline FROM tbl_tagline ORDER BY id ASC");
+  $statement->execute();
+  $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-    foreach ($results as $row) {
-        $taglines[] = $row['tagline'];
-    }
-    } catch (Exception $e) {
-    $taglines = ["Welcome to our website!"]; // fallback
-    }
+  foreach ($results as $row) {
+    $taglines[] = $row['tagline'];
+  }
+} catch (Exception $e) {
+  $taglines = ["Welcome to our website!"]; // fallback
+}
 
-    // ✅ Calculate total cart items in PHP (to avoid '0' flicker)
-    $total_cart_items = 0;
-    if ($user_id) {
-    if ($con) {
-        $q_count   = "SELECT SUM(no_of_item) as total FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
-        $res_count = mysqli_query($con, $q_count);
-        if ($res_count) {
-            $row_count        = mysqli_fetch_assoc($res_count);
-            $total_cart_items = (int) ($row_count['total'] ?? 0);
-        }
+// ✅ Calculate total cart items in PHP (to avoid '0' flicker)
+$total_cart_items = 0;
+if ($user_id) {
+  if ($con) {
+    $q_count   = "SELECT SUM(no_of_item) as total FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
+    $res_count = mysqli_query($con, $q_count);
+    if ($res_count) {
+      $row_count        = mysqli_fetch_assoc($res_count);
+      $total_cart_items = (int) ($row_count['total'] ?? 0);
     }
-    }
+  }
+}
 
-    // Fetch Seller Name for Header Display
-    $seller_name_for_header = null;
-    $active_ref_id = null;
+// Fetch Seller Name for Header Display
+$seller_name_for_header = null;
+$active_ref_id = null;
 
-    if (isset($_GET['ref'])) {
-        $active_ref_id = $_GET['ref'];
-    } elseif (isset($p_id) && isset($_SESSION['product_ref'][$p_id])) {
-        $active_ref_id = $_SESSION['product_ref'][$p_id];
-    } elseif (isset($_SESSION['ref_user_id'])) {
-        $active_ref_id = $_SESSION['ref_user_id'];
-    } elseif (!empty($_SESSION['product_ref'])) {
-        $active_ref_id = reset($_SESSION['product_ref']);
-    }
+if (isset($_GET['ref'])) {
+  $active_ref_id = $_GET['ref'];
+} elseif (isset($p_id) && isset($_SESSION['product_ref'][$p_id])) {
+  $active_ref_id = $_SESSION['product_ref'][$p_id];
+} elseif (isset($_SESSION['ref_user_id'])) {
+  $active_ref_id = $_SESSION['ref_user_id'];
+} elseif (!empty($_SESSION['product_ref'])) {
+  $active_ref_id = reset($_SESSION['product_ref']);
+}
 
-    if ($active_ref_id) {
-        if (is_numeric($active_ref_id)) {
-            $stmt_ref_name = $pdo->prepare("SELECT full_name FROM tbl_user WHERE id = ? AND status = 'Active' LIMIT 1");
-            $stmt_ref_name->execute([intval($active_ref_id)]);
-        } else {
-            $stmt_ref_name = $pdo->prepare("SELECT full_name FROM tbl_user WHERE ref_code = ? AND status = 'Active' LIMIT 1");
-            $stmt_ref_name->execute([$active_ref_id]);
-        }
-        if ($stmt_ref_name->rowCount() > 0) {
-            $seller_name_for_header = $stmt_ref_name->fetchColumn();
-        }
-    }
+if ($active_ref_id) {
+  if (is_numeric($active_ref_id)) {
+    $stmt_ref_name = $pdo->prepare("SELECT full_name FROM tbl_user WHERE id = ? AND status = 'Active' LIMIT 1");
+    $stmt_ref_name->execute([intval($active_ref_id)]);
+  } else {
+    $stmt_ref_name = $pdo->prepare("SELECT full_name FROM tbl_user WHERE ref_code = ? AND status = 'Active' LIMIT 1");
+    $stmt_ref_name->execute([$active_ref_id]);
+  }
+  if ($stmt_ref_name->rowCount() > 0) {
+    $seller_name_for_header = $stmt_ref_name->fetchColumn();
+  }
+}
 ?>
 
 <!DOCTYPE html>
@@ -213,29 +213,29 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<?php
-    // ===== Set defaults =====
-    $head_title       = $page_title ?? "Second Sight Foundation";
-    $head_description = $page_description ?? "Second Sight Foundation";
-    $head_keywords    = $page_keywords ?? "Second Sight Foundation";
-    $head_author      = "Second Sight Foundation";
+  <?php
+  // ===== Set defaults =====
+  $head_title       = $page_title ?? "Second Sight Foundation";
+  $head_description = $page_description ?? "Second Sight Foundation";
+  $head_keywords    = $page_keywords ?? "Second Sight Foundation";
+  $head_author      = "Second Sight Foundation";
 
-    // Optional: product-specific variables for OG/Twitter
-    $product_og_title = $product_name ?? null;
-    $product_og_desc  = $share_text ?? $product_name ?? null;
-    $product_og_url   = $product_url ?? null;
-    $product_og_img   = ! empty($product_img) ? $product_img . '?v=' . time() : null;
+  // Optional: product-specific variables for OG/Twitter
+  $product_og_title = $product_name ?? null;
+  $product_og_desc  = $share_text ?? $product_name ?? null;
+  $product_og_url   = $product_url ?? null;
+  $product_og_img   = ! empty($product_img) ? $product_img . '?v=' . time() : null;
 
-?>
+  ?>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="<?php echo htmlspecialchars($head_description) ?>">
-<meta name="keywords" content="<?php echo htmlspecialchars($head_keywords) ?>">
-<meta name="author" content="<?php echo htmlspecialchars($head_author) ?>">
-<link rel="icon" href="<?php echo $base_url; ?>assets/images/logo-fav.png" type="image/png">
-<title><?php echo htmlspecialchars($head_title) ?></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="<?php echo htmlspecialchars($head_description) ?>">
+  <meta name="keywords" content="<?php echo htmlspecialchars($head_keywords) ?>">
+  <meta name="author" content="<?php echo htmlspecialchars($head_author) ?>">
+  <link rel="icon" href="<?php echo $base_url; ?>assets/images/logo-fav.png" type="image/png">
+  <title><?php echo htmlspecialchars($head_title) ?></title>
 
-<?php if ($product_og_title && $product_og_url && $product_og_img): ?>
+  <?php if ($product_og_title && $product_og_url && $product_og_img): ?>
     <!-- Open Graph / Facebook -->
     <meta property="og:title" content="<?php echo htmlspecialchars($product_og_title) ?>" />
     <meta property="og:description" content="<?php echo htmlspecialchars($product_og_desc) ?>" />
@@ -248,7 +248,7 @@
     <meta name="twitter:title" content="<?php echo htmlspecialchars($product_og_title) ?>" />
     <meta name="twitter:description" content="<?php echo htmlspecialchars($product_og_desc) ?>" />
     <meta name="twitter:image" content="<?php echo htmlspecialchars($product_og_img) ?>" />
-<?php endif; ?>
+  <?php endif; ?>
 
 
 
@@ -367,7 +367,7 @@
   </div>
 
 
-    <!-- Navbar -->
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg sticky-top" style="background-color: white; box-shadow: 0 2px 15px rgba(0,0,0,0.1); padding: 15px 0;">
     <div class="container d-flex align-items-center justify-content-between">
 
@@ -376,115 +376,115 @@
       </a>
 
       <!-- Mobile Search Trigger -->
-<div class="d-flex d-lg-none align-items-center ms-auto">
-  <a href="#" id="searchToggleMobile" class="position-relative me-2" title="Search">
+      <div class="d-flex d-lg-none align-items-center ms-auto">
+        <!-- <a href="#" id="searchToggleMobile" class="position-relative me-2" title="Search">
     <i class="fa fa-search fs-5 text-dark"></i>
-  </a>
-</div>
+  </a> -->
+      </div>
 
-<!-- Mobile Search Popup -->
-<div id="searchBoxMobile" class="search-popup-mobile shadow rounded">
-  <button class="search-close" aria-label="Close">&times;</button>
-  <form action="<?php echo $base_url; ?>search.php" method="get" class="d-flex">
-    <input type="text" name="q" class="form-control form-control-sm me-2" placeholder="Search...">
-    <button type="submit" class="btn btn-sm btn-gradient">
-      <i class="fas fa-search"></i>
-    </button>
-  </form>
-</div>
+      <!-- Mobile Search Popup -->
+      <div id="searchBoxMobile" class="search-popup-mobile shadow rounded">
+        <button class="search-close" aria-label="Close">&times;</button>
+        <form action="<?php echo $base_url; ?>search.php" method="get" class="d-flex">
+          <input type="text" name="q" class="form-control form-control-sm me-2" placeholder="Search...">
+          <button type="submit" class="btn btn-sm btn-gradient">
+            <i class="fas fa-search"></i>
+          </button>
+        </form>
+      </div>
 
-<style>
-  /* Mobile search popup (hidden by default) */
-  .search-popup-mobile {
-    display: none;
-  }
+      <style>
+        /* Mobile search popup (hidden by default) */
+        .search-popup-mobile {
+          display: none;
+        }
 
-  @media (max-width: 991px) {
-    .search-popup-mobile {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      height: 100%;
-      padding: 20px;
-      background: #fff;
-      z-index: 1050;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      opacity: 0;
-      transform: translateY(-100%);
-      pointer-events: none;
-      transition: all 0.25s ease-in-out;
-    }
+        @media (max-width: 991px) {
+          .search-popup-mobile {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            background: #fff;
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(-100%);
+            pointer-events: none;
+            transition: all 0.25s ease-in-out;
+          }
 
-    .search-popup-mobile.show {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
+          .search-popup-mobile.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+          }
 
-    /* Show close button only on mobile */
-    .search-popup-mobile .search-close {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      font-size: 24px;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-  }
-</style>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const searchToggleMobile = document.getElementById('searchToggleMobile');
-    const searchBoxMobile = document.getElementById('searchBoxMobile');
-    const closeBtn = searchBoxMobile.querySelector('.search-close');
-
-    if (searchToggleMobile && searchBoxMobile) {
-      // Open/close only on mobile
-      searchToggleMobile.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (window.innerWidth <= 991) {
-          searchBoxMobile.classList.toggle('show');
-          if (searchBoxMobile.classList.contains('show')) {
-            setTimeout(() => {
-              const input = searchBoxMobile.querySelector('input');
-              if (input) input.focus();
-            }, 150);
+          /* Show close button only on mobile */
+          .search-popup-mobile .search-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
           }
         }
-      });
+      </style>
 
-      // Close button
-      closeBtn.addEventListener('click', function() {
-        searchBoxMobile.classList.remove('show');
-      });
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const searchToggleMobile = document.getElementById('searchToggleMobile');
+          const searchBoxMobile = document.getElementById('searchBoxMobile');
+          const closeBtn = searchBoxMobile.querySelector('.search-close');
 
-      // Close on ESC
-      document.addEventListener('keydown', function(e) {
-        if (e.key === "Escape") {
-          searchBoxMobile.classList.remove('show');
-        }
-      });
-    }
-  });
-</script>
+          if (searchToggleMobile && searchBoxMobile) {
+            // Open/close only on mobile
+            searchToggleMobile.addEventListener('click', function(e) {
+              e.preventDefault();
+              if (window.innerWidth <= 991) {
+                searchBoxMobile.classList.toggle('show');
+                if (searchBoxMobile.classList.contains('show')) {
+                  setTimeout(() => {
+                    const input = searchBoxMobile.querySelector('input');
+                    if (input) input.focus();
+                  }, 150);
+                }
+              }
+            });
+
+            // Close button
+            closeBtn.addEventListener('click', function() {
+              searchBoxMobile.classList.remove('show');
+            });
+
+            // Close on ESC
+            document.addEventListener('keydown', function(e) {
+              if (e.key === "Escape") {
+                searchBoxMobile.classList.remove('show');
+              }
+            });
+          }
+        });
+      </script>
 
       <div class="d-lg-none d-flex align-items-center">
-          <a href="#" onclick="openCartPopup(); return false;" class="position-relative me-2">
-              <i class="fa fa-shopping-cart fs-5 text-dark"></i>
-              <span id="cart-badge-count-mobile" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
-                  <?php echo $total_cart_items; ?>
-              </span>
-          </a>
-          <button class="navbar-toggler border-0 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-              <span class="navbar-toggler-icon"></span>
-          </button>
+        <a href="#" onclick="openCartPopup(); return false;" class="position-relative me-2">
+          <i class="fa fa-shopping-cart fs-5 text-dark"></i>
+          <span id="cart-badge-count-mobile" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
+            <?php echo $total_cart_items; ?>
+          </span>
+        </a>
+        <button class="navbar-toggler border-0 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
       </div>
       <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
         <!-- <a href="<?php echo $base_url; ?>index.php" class="navbar-brand d-flex d-lg-none" style="margin-left:-20px;">
@@ -497,7 +497,7 @@
           <?php if (!empty($seller_name_for_header)): ?>
             <li class="nav-item d-flex align-items-center">
               <span class="nav-link fw-bold text-dark" style="font-size: 22px;">
-                <i class="fa fa-user-circle" style="color: #fdc134;"></i> 
+                <i class="fa fa-user-circle" style="color: #fdc134;"></i>
                 <?php echo htmlspecialchars($seller_name_for_header); ?>
               </span>
             </li>
@@ -530,7 +530,7 @@
           <a href="#" onclick="openCartPopup(); return false;" class="position-relative me-3">
             <i class="fa fa-shopping-cart fs-4 text-dark"></i>
             <span id="cart-badge-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
-                <?php echo $total_cart_items; ?>
+              <?php echo $total_cart_items; ?>
             </span>
           </a>
           <!-- Custom Gradient Button Style -->
@@ -595,10 +595,10 @@
           <?php if (isset($_SESSION['user_id'])): ?>
             <li class="nav-item">
               <a class="nav-link me-3" href="<?php echo $base_url; ?>profile.php">Hi, <?php
-                     $fullName  = $_SESSION['user_name'] ?? 'User';
-                     $firstName = explode(' ', trim($fullName))[0];
-                 ?>
-<?php echo htmlspecialchars($firstName); ?></a>
+                                                                                      $fullName  = $_SESSION['user_name'] ?? 'User';
+                                                                                      $firstName = explode(' ', trim($fullName))[0];
+                                                                                      ?>
+                <?php echo htmlspecialchars($firstName); ?></a>
             </li>
             <li class="nav-item">
               <a class="btn btn-gradient-outline fw-bold" href="<?php echo $base_url; ?>logout.php">Logout</a>
@@ -615,14 +615,14 @@
         <div class="d-lg-none text-center mt-3 d-flex">
           <?php if (isset($_SESSION['user_id'])): ?>
             <a class="nav-link" href="profile.php">Hi, <?php
-                                                           $fullName  = $_SESSION['user_name'] ?? 'User';
-                                                           $firstName = explode(' ', trim($fullName))[0];
-                                                       ?>
-<?php echo htmlspecialchars($firstName); ?></a> <br>
+                                                        $fullName  = $_SESSION['user_name'] ?? 'User';
+                                                        $firstName = explode(' ', trim($fullName))[0];
+                                                        ?>
+              <?php echo htmlspecialchars($firstName); ?></a> <br>
             <a href="<?php echo $base_url; ?>logout.php"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">Logout</button> </a>
           <?php else: ?>
             <a href="<?php echo $base_url; ?>login.php"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">LogIn</button></a> <br>
-            <a href="<?php echo $base_url; ?>signup.php"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">Signup</button> </a><br>
+            <a href="<?php echo $base_url; ?>login.php#registerBox"> <button onclick="openLoginPopup()" class="login btn btn-outline-warning mb-2 px-4 ">Signup</button> </a><br>
           <?php endif; ?>
         </div>
       </div>
