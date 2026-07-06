@@ -315,7 +315,7 @@ if (!$seller) {
 
 
     <div class="header1">
-        <img src="images/user/user/<?php echo $seller->user_image; ?>" class="profile-img">
+        <img src="<?php echo $base_url; ?>seller/images/user/user/<?php echo rawurlencode($seller->user_image); ?>" class="profile-img">
         <div class="vendor-name">
             <?php echo $seller->blog_title ?: $seller->user_name; ?>
         </div>
@@ -343,7 +343,7 @@ if (!$seller) {
                             if (trim($img) != '') {
                                 echo '<div class="swiper-slide">';
                                 echo '<div class="product-card">';
-                                echo '<img src="images/user/products/' . trim($img) . '" alt="Product">';
+                                echo '<img src="' . $base_url . 'seller/images/user/products/' . rawurlencode(trim($img)) . '" alt="Product">';
                                 echo '</div></div>';
                             }
                         }
@@ -406,7 +406,7 @@ if (!$seller) {
                 echo '<div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">';
                 while($vid = mysqli_fetch_object($v_res)){
                     $has_video = true;
-                    $thumb = !empty($vid->thumbnail_image) ? "images/user/videos/".$vid->thumbnail_image : "images/slider1.jpg";
+                    $thumb = !empty($vid->thumbnail_image) ? $base_url."seller/images/user/videos/".rawurlencode($vid->thumbnail_image) : $base_url."seller/images/slider1.jpg";
                     echo '<a href="'.$vid->youtube_link.'" target="_blank" style="width:100%; max-width:320px; text-decoration:none; display:block; transition: transform 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">';
                     echo '<div style="position:relative;">';
                     echo '<img src="'.$thumb.'" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);">';

@@ -492,7 +492,7 @@ if (isset($_GET['id'])) {
 															<input type="file" name="user_image" class="form-control">
 															<?php if (!empty($info_blog->user_image)) { ?>
 																<img width="50px"
-																	src="../images/user/user/<?php echo $info_blog->user_image; ?>">
+																	src="<?php echo $base_url; ?>seller/images/user/user/<?php echo rawurlencode($info_blog->user_image); ?>">
 																<input type="hidden" name="user_image2"
 																	value="<?php echo $info_blog->user_image; ?>">
 															<?php } ?>
@@ -625,7 +625,7 @@ if (isset($_GET['id'])) {
 															?>
 																<div class="col-md-3" style="margin-bottom:15px;">
 																	<div style="border:1px solid #ddd; padding:10px; border-radius:5px; background:#f9f9f9; text-align:center;">
-																		<img src="../images/user/products/<?php echo trim($img); ?>" style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:10px;">
+																		<img src="<?php echo $base_url; ?>seller/images/user/products/<?php echo rawurlencode(trim($img)); ?>" style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:10px;">
 																		<a href="add-user.php?id=<?php echo isset($_GET['id']) ? $_GET['id'] : ''; ?>&del_product_img=<?php echo trim($img); ?>" class="btn btn-danger btn-xs btn-block" onclick="return confirm('Are you sure you want to delete this product image?');"><i class="fa fa-trash"></i> Remove Image</a>
 																	</div>
 																</div>
@@ -691,7 +691,7 @@ if (isset($_GET['id'])) {
 																<?php foreach($existing_videos as $vid){ ?>
 																	<div class="col-md-3" style="margin-bottom:15px;">
 																		<div style="border:1px solid #ddd; padding:10px; border-radius:5px; background:#f9f9f9;">
-																			<img src="../images/user/videos/<?php echo $vid->thumbnail_image; ?>" style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:10px;">
+																			<img src="<?php echo $base_url; ?>seller/images/user/videos/<?php echo rawurlencode($vid->thumbnail_image); ?>" style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:10px;">
 																			<input type="text" value="<?php echo $vid->youtube_link; ?>" class="form-control input-sm" readonly style="margin-bottom:10px;">
 																			<a href="add-user.php?id=<?php echo $_GET['id']; ?>&del_video=<?php echo $vid->id; ?>" class="btn btn-danger btn-xs btn-block" onclick="return confirm('Are you sure you want to delete this video?');"><i class="fa fa-trash"></i> Remove Video</a>
 																		</div>
