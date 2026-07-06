@@ -43,6 +43,7 @@ if (!$seller) {
     <meta name="description" content="<?php echo $seller->meta_description; ?>">
     <link rel="icon" type="image/png" href="https://secondsightfoundation.com/assets/img/logo-fav.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
     <style>
         /* ================= GLOBAL ================= */
@@ -128,54 +129,38 @@ if (!$seller) {
         }
 
         /* ================= PRODUCT SLIDER ================= */
-
-        .slider {
-            position: relative;
-            max-width: 100%;
-            overflow: hidden;
-            border-radius: 10px;
-        }
-
-        .slides {
-            display: flex;
-            transition: transform 0.5s ease-in-out;
-        }
-
-        .slides img {
+        .swiper {
             width: 100%;
-            height: 750px;
+            padding: 10px 0 40px 0;
+        }
+        .product-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 10px;
+            text-align: center;
+        }
+        .product-card img {
+            width: 100%;
+            aspect-ratio: 4 / 5;
             object-fit: cover;
-            flex: 0 0 100%;
+            object-position: center;
+            border-radius: 5px;
         }
-
-        /* SLIDER BUTTONS */
-
-        .slider-btn {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            border: none;
-            width: 45px;
-            height: 45px;
+        .swiper-button-next, .swiper-button-prev {
+            color: #ffc107;
+            background: rgba(0,0,0,0.5);
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            cursor: pointer;
+        }
+        .swiper-button-next:after, .swiper-button-prev:after {
             font-size: 18px;
-            z-index: 10;
+            font-weight: bold;
         }
-
-        .slider-btn:hover {
+        .swiper-pagination-bullet-active {
             background: #ffc107;
-            color: #000;
-        }
-
-        .prev {
-            left: 10px;
-        }
-
-        .next {
-            right: 10px;
         }
 
         /* ================= VIDEO ================= */
@@ -281,10 +266,6 @@ if (!$seller) {
                 font-size: 26px;
             }
 
-            .slides img {
-                height: 220px;
-            }
-
         }
 
 
@@ -353,30 +334,27 @@ if (!$seller) {
 
             <h2>Our Products</h2>
 
-            <div class="slider">
-
-                <button class="slider-btn prev" onclick="prevSlide()">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-
-                <button class="slider-btn next" onclick="nextSlide()">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-
-                <div class="slides" id="slides">
+            <div class="swiper mySwiper">
+                <div class="swiper-wrapper">
                     <?php
                     if (!empty($seller->product_images)) {
                         $imgs = explode(",", $seller->product_images);
                         foreach ($imgs as $img) {
-                            echo '<img src="images/user/products/' . $img . '" alt="Product">';
+                            if (trim($img) != '') {
+                                echo '<div class="swiper-slide">';
+                                echo '<div class="product-card">';
+                                echo '<img src="images/user/products/' . trim($img) . '" alt="Product">';
+                                echo '</div></div>';
+                            }
                         }
                     } else {
-                        echo '<img src="images/slider1.jpg" alt="Default Product">';
+                        echo '<div class="swiper-slide"><div class="product-card"><img src="images/slider1.jpg" alt="Default Product"></div></div>';
                     }
                     ?>
-
                 </div>
-
+                <div class="swiper-pagination"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
             </div>
 
         </div>
@@ -417,26 +395,40 @@ if (!$seller) {
 
         </div>
         <!-- VIDEO SECTION -->
-
         <div class="section">
-
-            <h2>Watch Introduction Video</h2>
-
-            <div class="video-wrapper">
-
-                <?php
-                if (!empty($seller->youtube_link)) {
-                    // Convert YouTube URL to Embed URL
-                    $video_url = str_replace("watch?v=", "embed/", $seller->youtube_link);
-                    $video_url = str_replace("youtu.be/", "youtube.com/embed/", $video_url);
-                    echo '<iframe src="' . $video_url . '" frameborder="0" allowfullscreen></iframe>';
-                } else {
-                    echo '<p style="text-align:center;">No video available.</p>';
+            <h2>Watch Our Videos</h2>
+            <?php
+            $v_query = "SELECT * FROM user_youtube_videos WHERE user_id = '$id' ORDER BY id ASC";
+            $v_res = mysqli_query($conn, $v_query);
+            $has_video = false;
+            
+            if(mysqli_num_rows($v_res) > 0){
+                echo '<div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">';
+                while($vid = mysqli_fetch_object($v_res)){
+                    $has_video = true;
+                    $thumb = !empty($vid->thumbnail_image) ? "images/user/videos/".$vid->thumbnail_image : "images/slider1.jpg";
+                    echo '<a href="'.$vid->youtube_link.'" target="_blank" style="width:100%; max-width:320px; text-decoration:none; display:block; transition: transform 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">';
+                    echo '<div style="position:relative;">';
+                    echo '<img src="'.$thumb.'" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);">';
+                    echo '<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(255,0,0,0.8); color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="fa fa-play"></i></div>';
+                    echo '</div>';
+                    echo '<p style="text-align:center; color:#333; margin-top:10px; font-weight:bold;">Watch Video</p>';
+                    echo '</a>';
                 }
-                ?>
-
-            </div>
-
+                echo '</div>';
+            }
+            
+            if (!$has_video && !empty($seller->youtube_link)) {
+                // Fallback to old single video
+                echo '<div class="video-wrapper">';
+                $video_url = str_replace("watch?v=", "embed/", $seller->youtube_link);
+                $video_url = str_replace("youtu.be/", "youtube.com/embed/", $video_url);
+                echo '<iframe src="' . $video_url . '" frameborder="0" allowfullscreen></iframe>';
+                echo '</div>';
+            } elseif(!$has_video) {
+                echo '<p style="text-align:center; color:#777;">No videos available.</p>';
+            }
+            ?>
         </div>
 
         <?php if ($customer) { ?>
@@ -481,41 +473,39 @@ if (!$seller) {
 
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
-        let index = 0;
-
-        const slides = document.getElementById("slides");
-        const totalSlides = slides.children.length;
-
-        function showSlide() {
-            slides.style.transform =
-                "translateX(-" + (index * 100) + "%)";
-        }
-
-        function nextSlide() {
-            index++;
-
-            if (index >= totalSlides) {
-                index = 0;
-            }
-
-            showSlide();
-        }
-
-        function prevSlide() {
-            index--;
-
-            if (index < 0) {
-                index = totalSlides - 1;
-            }
-
-            showSlide();
-        }
-
-        /* Auto slide */
-        if (totalSlides > 1) {
-            setInterval(nextSlide, 3000);
-        }
+        var swiper = new Swiper(".mySwiper", {
+            slidesPerView: 1,
+            spaceBetween: 20,
+            loop: true,
+            autoplay: {
+                delay: 3000,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: ".swiper-pagination",
+                clickable: true,
+            },
+            navigation: {
+                nextEl: ".swiper-button-next",
+                prevEl: ".swiper-button-prev",
+            },
+            breakpoints: {
+                640: {
+                    slidesPerView: 2,
+                    spaceBetween: 20,
+                },
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 30,
+                },
+                1024: {
+                    slidesPerView: 4,
+                    spaceBetween: 30,
+                },
+            },
+        });
 
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(function() {

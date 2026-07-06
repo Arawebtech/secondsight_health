@@ -6,6 +6,39 @@ if (empty($_SESSION['username'])) {
 }
 include('include/db_config.php');
 
+if (isset($_GET['del_video']) && isset($_GET['id'])) {
+    $del_vid = $_GET['del_video'];
+    $q_del = mysqli_query($conn, "SELECT thumbnail_image FROM user_youtube_videos WHERE id='$del_vid'");
+    if($r_del = mysqli_fetch_assoc($q_del)){
+        if(!empty($r_del['thumbnail_image']) && file_exists("../images/user/videos/".$r_del['thumbnail_image'])){
+            unlink("../images/user/videos/".$r_del['thumbnail_image']);
+        }
+    }
+    mysqli_query($conn, "DELETE FROM user_youtube_videos WHERE id='$del_vid'");
+    exit("<script>window.location.href='add-user.php?id=".$_GET['id']."';</script>");
+}
+
+if (isset($_GET['del_product_img']) && isset($_GET['id'])) {
+    $del_img = $_GET['del_product_img'];
+    $u_id = $_GET['id'];
+    $q_u = mysqli_query($conn, "SELECT product_images FROM user WHERE id='$u_id'");
+    if($r_u = mysqli_fetch_assoc($q_u)){
+        $imgs = explode(",", $r_u['product_images']);
+        $new_imgs = [];
+        foreach($imgs as $img){
+            if(trim($img) != $del_img && trim($img) != ''){
+                $new_imgs[] = $img;
+            } elseif (trim($img) == $del_img) {
+                if(file_exists("../images/user/products/".trim($img))){
+                    unlink("../images/user/products/".trim($img));
+                }
+            }
+        }
+        $new_imgs_str = implode(",", $new_imgs);
+        mysqli_query($conn, "UPDATE user SET product_images='$new_imgs_str' WHERE id='$u_id'");
+    }
+    exit("<script>window.location.href='add-user.php?id=".$u_id."';</script>");
+}
 
 global $conn;
 if (isset($_POST['submit']) and $_POST['submit'] == 'Save') {
@@ -99,6 +132,21 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Save') {
 	$res_query = mysqli_query($conn, $sql_query);
 
 	if ($res_query > 0) {
+		$new_user_id = mysqli_insert_id($conn);
+		if (isset($_POST['yt_links']) && is_array($_POST['yt_links'])) {
+			foreach ($_POST['yt_links'] as $key => $yt_link) {
+				if (!empty(trim($yt_link))) {
+					$thumb_name = "";
+					if (!empty($_FILES['yt_thumbs']['name'][$key])) {
+						$thumb_name = rand(1000, 9999) . "_" . $_FILES['yt_thumbs']['name'][$key];
+						$tmp_name = $_FILES['yt_thumbs']['tmp_name'][$key];
+						move_uploaded_file($tmp_name, "../images/user/videos/" . $thumb_name);
+					}
+					$yt_link = addslashes($yt_link);
+					mysqli_query($conn, "INSERT INTO user_youtube_videos (user_id, youtube_link, thumbnail_image) VALUES ('$new_user_id', '$yt_link', '$thumb_name')");
+				}
+			}
+		}
 		exit("<script>window.location.href='view-user.php?id=Added';</script>");
 	} else {
 		$error = "There is some problem in inserting record: " . mysqli_error($conn);
@@ -143,12 +191,17 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Update') {
 	$product_images_str = $_POST['product_images2'];
 	if (!empty($_FILES['product_images']['name'][0])) {
 		$product_images_arr = [];
+		if (!empty($product_images_str)) {
+			$product_images_arr = explode(",", $product_images_str);
+		}
 		foreach ($_FILES['product_images']['name'] as $key => $val) {
-			$file_name = rand(1000, 9999) . "_" . $_FILES['product_images']['name'][$key];
-			$file_tmp = $_FILES['product_images']['tmp_name'][$key];
-			$folder = "../images/user/products/";
-			move_uploaded_file($file_tmp, $folder . $file_name);
-			$product_images_arr[] = $file_name;
+			if (!empty(trim($val))) {
+				$file_name = rand(1000, 9999) . "_" . $_FILES['product_images']['name'][$key];
+				$file_tmp = $_FILES['product_images']['tmp_name'][$key];
+				$folder = "../images/user/products/";
+				move_uploaded_file($file_tmp, $folder . $file_name);
+				$product_images_arr[] = $file_name;
+			}
 		}
 		$product_images_str = implode(",", $product_images_arr);
 	}
@@ -214,6 +267,20 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Update') {
 	$resq = mysqli_query($conn, $sql);
 
 	if ($resq) {
+		if (isset($_POST['yt_links']) && is_array($_POST['yt_links'])) {
+			foreach ($_POST['yt_links'] as $key => $yt_link) {
+				if (!empty(trim($yt_link))) {
+					$thumb_name = "";
+					if (!empty($_FILES['yt_thumbs']['name'][$key])) {
+						$thumb_name = rand(1000, 9999) . "_" . $_FILES['yt_thumbs']['name'][$key];
+						$tmp_name = $_FILES['yt_thumbs']['tmp_name'][$key];
+						move_uploaded_file($tmp_name, "../images/user/videos/" . $thumb_name);
+					}
+					$yt_link = addslashes($yt_link);
+					mysqli_query($conn, "INSERT INTO user_youtube_videos (user_id, youtube_link, thumbnail_image) VALUES ('$id', '$yt_link', '$thumb_name')");
+				}
+			}
+		}
 		exit("<script>window.location.href='view-user.php?id=Update';</script>");
 	} else {
 		$error = "There is some problem in updating record: " . mysqli_error($conn);
@@ -257,6 +324,14 @@ if (isset($_GET['id'])) {
 	];
 }
 
+$existing_videos = [];
+if (isset($_GET['id'])) {
+	$vid_id = $_GET['id'];
+	$vid_q = mysqli_query($conn, "SELECT * FROM user_youtube_videos WHERE user_id='$vid_id' ORDER BY id ASC");
+	while($vrow = mysqli_fetch_object($vid_q)){
+		$existing_videos[] = $vrow;
+	}
+}
 
 ?>
 
@@ -409,7 +484,7 @@ if (isset($_GET['id'])) {
 												</div>
 												<div class="col-md-6">
 													<div class="form-group">
-														<label for="user_image">User Image :</label>
+														<label for="user_image">User Image <small class="text-muted">(Recommended: 400x400 px, 1:1 Square, Max: 2MB)</small> :</label>
 														<div class="input-group">
 															<div class="input-group-addon">
 																<i class="fa fa-image"></i>
@@ -531,7 +606,7 @@ if (isset($_GET['id'])) {
 												</div>
 												<div class="col-md-12">
 													<div class="form-group">
-														<label for="product_images">Our Products (Multiple Images)
+														<label for="product_images">Our Products (Multiple Images) <small class="text-muted">(Recommended: 800x1000 px, Portrait, Max: 2MB)</small>
 															:</label>
 														<div class="input-group">
 															<div class="input-group-addon">
@@ -544,11 +619,18 @@ if (isset($_GET['id'])) {
 														</div>
 														<?php if (!empty($info_blog->product_images)) {
 															$imgs = explode(",", $info_blog->product_images);
-															foreach ($imgs as $img) { ?>
-																<img width="50px"
-																	src="../images/user/products/<?php echo $img; ?>"
-																	style="margin-right:5px; margin-top:5px;">
-														<?php }
+															echo '<div class="row" style="margin-top:15px;">';
+															foreach ($imgs as $img) {
+																if(trim($img) == '') continue;
+															?>
+																<div class="col-md-3" style="margin-bottom:15px;">
+																	<div style="border:1px solid #ddd; padding:10px; border-radius:5px; background:#f9f9f9; text-align:center;">
+																		<img src="../images/user/products/<?php echo trim($img); ?>" style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:10px;">
+																		<a href="add-user.php?id=<?php echo isset($_GET['id']) ? $_GET['id'] : ''; ?>&del_product_img=<?php echo trim($img); ?>" class="btn btn-danger btn-xs btn-block" onclick="return confirm('Are you sure you want to delete this product image?');"><i class="fa fa-trash"></i> Remove Image</a>
+																	</div>
+																</div>
+															<?php }
+															echo '</div>';
 														} ?>
 													</div>
 												</div>
@@ -602,14 +684,40 @@ if (isset($_GET['id'])) {
 												</div>
 												<div class="col-md-12">
 													<div class="form-group">
-														<label for="youtube_link">YouTube Video Link :</label>
-														<div class="input-group">
-															<div class="input-group-addon">
-																<i class="fa fa-youtube"></i>
+														<label>YouTube Videos :</label>
+														<!-- Existing Videos -->
+														<?php if(!empty($existing_videos)){ ?>
+															<div class="row" style="margin-bottom:15px;">
+																<?php foreach($existing_videos as $vid){ ?>
+																	<div class="col-md-3" style="margin-bottom:15px;">
+																		<div style="border:1px solid #ddd; padding:10px; border-radius:5px; background:#f9f9f9;">
+																			<img src="../images/user/videos/<?php echo $vid->thumbnail_image; ?>" style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:10px;">
+																			<input type="text" value="<?php echo $vid->youtube_link; ?>" class="form-control input-sm" readonly style="margin-bottom:10px;">
+																			<a href="add-user.php?id=<?php echo $_GET['id']; ?>&del_video=<?php echo $vid->id; ?>" class="btn btn-danger btn-xs btn-block" onclick="return confirm('Are you sure you want to delete this video?');"><i class="fa fa-trash"></i> Remove Video</a>
+																		</div>
+																	</div>
+																<?php } ?>
 															</div>
-															<input type='url' name='youtube_link'
-																value="<?php echo $info_blog->youtube_link; ?>"
-																class='form-control'>
+														<?php } ?>
+
+														<!-- New Videos -->
+														<div id="yt-videos-wrapper">
+															<div class="row yt-video-row" style="margin-bottom: 10px;">
+																<div class="col-md-6">
+																	<label>YouTube Link</label>
+																	<div class="input-group">
+																		<div class="input-group-addon"><i class="fa fa-youtube"></i></div>
+																		<input type="url" name="yt_links[]" class="form-control" placeholder="https://youtube.com/...">
+																	</div>
+																</div>
+																<div class="col-md-5">
+																	<label>Thumbnail Image <small class="text-muted">(Recommended: 1280x720 px, 16:9, Max: 2MB)</small></label>
+																	<input type="file" name="yt_thumbs[]" class="form-control" accept="image/*">
+																</div>
+																<div class="col-md-1" style="padding-top: 25px;">
+																	<button type="button" class="btn btn-success btn-add-yt"><i class="fa fa-plus"></i></button>
+																</div>
+															</div>
 														</div>
 													</div>
 												</div>
@@ -791,6 +899,30 @@ if (isset($_GET['id'])) {
 			if ($('#customer_id').val() != '') {
 				$('#customer_id').trigger('change');
 			}
+
+			// Add multiple YouTube Videos
+			$(document).on('click', '.btn-add-yt', function(){
+				var html = '<div class="row yt-video-row" style="margin-bottom: 10px; margin-top:10px;">' +
+								'<div class="col-md-6">' +
+									'<div class="input-group">' +
+										'<div class="input-group-addon"><i class="fa fa-youtube"></i></div>' +
+										'<input type="url" name="yt_links[]" class="form-control" placeholder="https://youtube.com/...">' +
+									'</div>' +
+								'</div>' +
+								'<div class="col-md-5">' +
+									'<label>Thumbnail Image <small class="text-muted">(Recommended: 1280x720 px, 16:9, Max: 2MB)</small></label>' +
+									'<input type="file" name="yt_thumbs[]" class="form-control" accept="image/*">' +
+								'</div>' +
+								'<div class="col-md-1">' +
+									'<button type="button" class="btn btn-danger btn-remove-yt"><i class="fa fa-minus"></i></button>' +
+								'</div>' +
+							'</div>';
+				$('#yt-videos-wrapper').append(html);
+			});
+
+			$(document).on('click', '.btn-remove-yt', function(){
+				$(this).closest('.yt-video-row').remove();
+			});
 		});
 	</script>
 
