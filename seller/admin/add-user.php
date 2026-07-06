@@ -59,7 +59,7 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Save') {
 	// Banner Image
 	$banner_image_name = $_FILES["banner_image"]["name"];
 	if (!empty($banner_image_name)) {
-		$banner_image_s = rand(1000, 9999) . "_" . preg_replace("/[^a-zA-Z0-9.-]/", "_", trim($banner_image_name));
+		$banner_image_s = rand(1000, 9999) . "_" . trim($banner_image_name);
 		$file_loc_banner = $_FILES["banner_image"]["tmp_name"];
 		$folder_banner = "../images/user/user/";
 		move_uploaded_file($file_loc_banner, $folder_banner . $banner_image_s);
@@ -80,7 +80,7 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Save') {
 	if (!empty($_FILES['product_images']['name'][0])) {
 		$product_images_arr = [];
 		foreach ($_FILES['product_images']['name'] as $key => $val) {
-			$file_name = rand(1000, 9999) . "_" . preg_replace("/[^a-zA-Z0-9.-]/", "_", trim($_FILES['product_images']['name'][$key]));
+			$file_name = rand(1000, 9999) . "_" . trim($_FILES['product_images']['name'][$key]);
 			$file_tmp = $_FILES['product_images']['tmp_name'][$key];
 			$folder = "../images/user/products/";
 			move_uploaded_file($file_tmp, $folder . $file_name);
@@ -196,7 +196,7 @@ if (isset($_POST['submit']) and $_POST['submit'] == 'Update') {
 		}
 		foreach ($_FILES['product_images']['name'] as $key => $val) {
 			if (!empty(trim($val))) {
-				$file_name = rand(1000, 9999) . "_" . preg_replace("/[^a-zA-Z0-9.-]/", "_", trim($_FILES['product_images']['name'][$key]));
+				$file_name = rand(1000, 9999) . "_" . trim($_FILES['product_images']['name'][$key]);
 				$file_tmp = $_FILES['product_images']['tmp_name'][$key];
 				$folder = "../images/user/products/";
 				move_uploaded_file($file_tmp, $folder . $file_name);
