@@ -119,7 +119,7 @@ if (isset($_GET['del'])) {
                         </td>
 
                         <td><?php echo substr(strip_tags($info_item->product_description), 0, 50) . '...'; ?></td>
-                        <td><img src="<?php echo $base_url; ?>seller/images/user/user/<?php echo rawurlencode($info_item->user_image); ?>" width="60px"></td>
+                        <td><img src="../images/user/user/<?php echo rawurlencode($info_item->user_image); ?>" width="60px"></td>
                         <!-- <td><img src="../images/user/user/<?php echo $info_item->thumbnail_image; ?>" width="40px"></td> -->
                         <td><?php echo $info_item->coupon_permission; ?></td>
                         <td><?php echo $info_item->status; ?></td>
