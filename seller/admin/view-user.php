@@ -36,6 +36,76 @@ if (isset($_GET['del'])) {
   <link rel="icon" href="<?=$base_url;?>assets/images/logo-fav.png" type="image/png">
 
   <link rel="stylesheet" href="dist/css/skins/_all-skins.min.css">
+<style>
+    /* Premium Modern Table Styling */
+    .box {
+        border-top: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06) !important;
+        overflow: hidden !important;
+        border: 1px solid #edf2f7 !important;
+    }
+    .box-header {
+        background-color: #ffffff !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        padding: 15px 20px !important;
+    }
+    .box-body {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+    .table {
+        margin-bottom: 0 !important;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        font-size: 13px !important;
+    }
+    .table th, .table td {
+        border: none !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        padding: 14px 16px !important;
+        vertical-align: middle !important;
+        word-break: break-word;
+        color: #334155 !important;
+    }
+    .table th {
+        background-color: #f8fafc !important;
+        color: #64748b !important;
+        font-size: 11.5px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+    .table tbody tr {
+        transition: all 0.2s ease-in-out;
+    }
+    .table tbody tr:hover {
+        background-color: #f1f5f9 !important;
+    }
+    .table tbody tr:last-child td {
+        border-bottom: none !important;
+    }
+
+    /* Reduce sidebar width and expand main content area */
+    .main-sidebar {
+        width: 180px !important;
+    }
+    .content-wrapper, .main-footer {
+        margin-left: 180px !important;
+        background-color: #f8fafc !important;
+    }
+    .main-header .logo {
+        width: 180px !important;
+    }
+    .main-header .navbar {
+        margin-left: 180px !important;
+    }
+    @media (max-width: 767px) {
+        .content-wrapper, .main-footer, .main-header .navbar {
+            margin-left: 0 !important;
+        }
+    }
+</style>
 </head>
 
 <body class="hold-transition skin-blue sidebar-mini">
@@ -199,3 +269,7 @@ if (isset($_GET['del'])) {
 </body>
 
 </html>
+
+
+
+

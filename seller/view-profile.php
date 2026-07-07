@@ -89,9 +89,9 @@ if (!$seller) {
         }
 
         .profile-img {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
+            width: 180px;
+            height: 200px;
+            border-radius: 15px;
             border: 5px solid white;
             object-fit: cover;
             margin-bottom: 15px;
@@ -133,14 +133,16 @@ if (!$seller) {
             width: 100%;
             padding: 10px 0 40px 0;
         }
+
         .product-card {
             background: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             padding: 10px;
             text-align: center;
         }
+
         .product-card img {
             width: 100%;
             aspect-ratio: 4 / 5;
@@ -148,17 +150,22 @@ if (!$seller) {
             object-position: center;
             border-radius: 5px;
         }
-        .swiper-button-next, .swiper-button-prev {
+
+        .swiper-button-next,
+        .swiper-button-prev {
             color: #ffc107;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             width: 40px;
             height: 40px;
             border-radius: 50%;
         }
-        .swiper-button-next:after, .swiper-button-prev:after {
+
+        .swiper-button-next:after,
+        .swiper-button-prev:after {
             font-size: 18px;
             font-weight: bold;
         }
+
         .swiper-pagination-bullet-active {
             background: #ffc107;
         }
@@ -332,7 +339,7 @@ if (!$seller) {
 
         <div class="section">
 
-            <h2>Our Products</h2>
+            <h2>Our My Picture</h2>
 
             <div class="swiper mySwiper">
                 <div class="swiper-wrapper">
@@ -363,7 +370,7 @@ if (!$seller) {
 
         <div class="section">
 
-            <h2>About Products</h2>
+            <h2>Bio Me</h2>
 
             <div class="description">
                 <?php echo $seller->product_description; ?>
@@ -396,28 +403,37 @@ if (!$seller) {
         </div>
         <!-- VIDEO SECTION -->
         <div class="section">
-            <h2>Watch Our Videos</h2>
+            <h2>Watch My Video </h2>
             <?php
             $v_query = "SELECT * FROM user_youtube_videos WHERE user_id = '$id' ORDER BY id ASC";
             $v_res = mysqli_query($conn, $v_query);
             $has_video = false;
-            
-            if(mysqli_num_rows($v_res) > 0){
-                echo '<div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">';
-                while($vid = mysqli_fetch_object($v_res)){
+
+            if (mysqli_num_rows($v_res) > 0) {
+                echo '<div class="swiper videoSwiper" style="padding: 10px 0 40px 0;">';
+                echo '<div class="swiper-wrapper">';
+                while ($vid = mysqli_fetch_object($v_res)) {
                     $has_video = true;
-                    $thumb = !empty($vid->thumbnail_image) ? "images/user/videos/".rawurlencode($vid->thumbnail_image) : "images/slider1.jpg";
-                    echo '<a href="'.$vid->youtube_link.'" target="_blank" style="width:100%; max-width:320px; text-decoration:none; display:block; transition: transform 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">';
+                    $thumb = !empty($vid->thumbnail_image) ? "images/user/videos/" . rawurlencode($vid->thumbnail_image) : "images/slider1.jpg";
+                    echo '<div class="swiper-slide">';
+                    echo '<a href="' . $vid->youtube_link . '" target="_blank" style="text-decoration:none; display:block; transition: transform 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">';
+                    echo '<div class="product-card" style="position:relative; padding-bottom:15px;">';
                     echo '<div style="position:relative;">';
-                    echo '<img src="'.$thumb.'" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);">';
-                    echo '<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(255,0,0,0.8); color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="fa fa-play"></i></div>';
+                    echo '<img src="' . $thumb . '" style="width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:5px;">';
+                    echo '<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(255,0,0,0.8); color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 4px 10px rgba(0,0,0,0.3);"><i class="fa fa-play" style="margin-left:4px;"></i></div>';
                     echo '</div>';
-                    echo '<p style="text-align:center; color:#333; margin-top:10px; font-weight:bold;">Watch Video</p>';
+                    echo '<p style="text-align:center; color:#333; margin-top:12px; margin-bottom:0; font-weight:bold;">Watch Video</p>';
+                    echo '</div>';
                     echo '</a>';
+                    echo '</div>';
                 }
                 echo '</div>';
+                echo '<div class="swiper-pagination video-pagination"></div>';
+                echo '<div class="swiper-button-next video-next"></div>';
+                echo '<div class="swiper-button-prev video-prev"></div>';
+                echo '</div>';
             }
-            
+
             if (!$has_video && !empty($seller->youtube_link)) {
                 // Fallback to old single video
                 echo '<div class="video-wrapper">';
@@ -425,7 +441,7 @@ if (!$seller) {
                 $video_url = str_replace("youtu.be/", "youtube.com/embed/", $video_url);
                 echo '<iframe src="' . $video_url . '" frameborder="0" allowfullscreen></iframe>';
                 echo '</div>';
-            } elseif(!$has_video) {
+            } elseif (!$has_video) {
                 echo '<p style="text-align:center; color:#777;">No videos available.</p>';
             }
             ?>
@@ -490,6 +506,38 @@ if (!$seller) {
             navigation: {
                 nextEl: ".swiper-button-next",
                 prevEl: ".swiper-button-prev",
+            },
+            breakpoints: {
+                640: {
+                    slidesPerView: 2,
+                    spaceBetween: 20,
+                },
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 30,
+                },
+                1024: {
+                    slidesPerView: 4,
+                    spaceBetween: 30,
+                },
+            },
+        });
+
+        var videoSwiper = new Swiper(".videoSwiper", {
+            slidesPerView: 1,
+            spaceBetween: 20,
+            loop: true,
+            autoplay: {
+                delay: 3500,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: ".video-pagination",
+                clickable: true,
+            },
+            navigation: {
+                nextEl: ".video-next",
+                prevEl: ".video-prev",
             },
             breakpoints: {
                 640: {
