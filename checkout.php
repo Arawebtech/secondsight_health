@@ -1,111 +1,117 @@
 <?php
-    session_start();
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-    include "admin/inc/config.php";
+session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+include "admin/inc/config.php";
 
-    // Handle guest checkout session
-    if (isset($_GET['guest'])) {
-        $_SESSION['is_guest_checkout'] = true;
-    }
+// Handle guest checkout session
+if (isset($_GET['guest'])) {
+    $_SESSION['is_guest_checkout'] = true;
+}
 
-    if (!isset($_SESSION['user_id']) && empty($_SESSION['is_guest_checkout'])) {
+if (!isset($_SESSION['user_id']) && empty($_SESSION['is_guest_checkout'])) {
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Required</title>
-    <!-- SweetAlert2 CSS and JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        body { background: #f8f9fa; font-family: 'Public Sans', sans-serif; }
-    </style>
-</head>
-<body>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                title: 'Please Log In',
-                text: 'You must be logged in to access checkout, or you can continue as a guest.',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#fcb813',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Log In',
-                cancelButtonText: 'Continue as Guest',
-                reverseButtons: true,
-                allowOutsideClick: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'login.php';
-                } else {
-                    window.location.href = 'checkout.php?guest=1';
-                }
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login Required</title>
+        <!-- SweetAlert2 CSS and JS -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <style>
+            body {
+                background: #f8f9fa;
+                font-family: 'Public Sans', sans-serif;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    title: 'Please Log In',
+                    text: 'You must be logged in to access checkout, or you can continue as a guest.',
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonColor: '#fcb813',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Log In',
+                    cancelButtonText: 'Continue as Guest',
+                    reverseButtons: true,
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = 'login.php';
+                    } else {
+                        window.location.href = 'checkout.php?guest=1';
+                    }
+                });
             });
-        });
-    </script>
-</body>
-</html>
+        </script>
+    </body>
+
+    </html>
 <?php
-        exit;
-    }
+    exit;
+}
 
-    // Get user ID from session
-    $user_id = $_SESSION['user_id'] ?? $_SESSION['temp_user_id'] ?? null;
-    if (! $user_id) {
+// Get user ID from session
+$user_id = $_SESSION['user_id'] ?? $_SESSION['temp_user_id'] ?? null;
+if (! $user_id) {
     die("User not logged in.");
-    }
+}
 
-    // Check if cart is empty
-    $cart_check_query  = "SELECT COUNT(*) as total_items FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
-    $cart_check_result = mysqli_query($con, $cart_check_query);
-    $cart_data         = mysqli_fetch_assoc($cart_check_result);
+// Check if cart is empty
+$cart_check_query  = "SELECT COUNT(*) as total_items FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
+$cart_check_result = mysqli_query($con, $cart_check_query);
+$cart_data         = mysqli_fetch_assoc($cart_check_result);
 
-    if ($cart_data['total_items'] == 0) {
+if ($cart_data['total_items'] == 0) {
     echo "<script>alert('Your cart is empty. Please add items before proceeding to checkout.'); window.location.href='cart.php';</script>";
     exit;
-    }
-    // echo $user_id; exit;
+}
+// echo $user_id; exit;
 
-    // --- Prefill addresses from DB ---
-    $query_s  = "SELECT * FROM tbl_shipping_address WHERE user_id = '$user_id' LIMIT 1";
-    $result_s = mysqli_query($con, $query_s);
-    if ($result_s && mysqli_num_rows($result_s) > 0) {
+// --- Prefill addresses from DB ---
+$query_s  = "SELECT * FROM tbl_shipping_address WHERE user_id = '$user_id' LIMIT 1";
+$result_s = mysqli_query($con, $query_s);
+if ($result_s && mysqli_num_rows($result_s) > 0) {
     $data_s                            = mysqli_fetch_assoc($result_s);
     $s_state                           = $data_s['state'];
     $full_shipping_address             = $data_s['name'] . ", " . $data_s['phone_no'] . ", " . $data_s['building_no'] . ", " . $data_s['street_address'] . ", " . $data_s['landmark'] . ", " . $data_s['town'] . ", " . $data_s['district'] . ", " . $data_s['state'] . ", " . $data_s['pincode'] . ", " . $data_s['gst_no'];
     $_SESSION['full_shipping_address'] = $full_shipping_address;
     $_SESSION['s_state']               = $s_state;
-    }
+}
 
-    $s_state              = $_SESSION['s_state'] ?? '';
-    $full_billing_address = $_SESSION['full_billing_address'] ?? '';
+$s_state              = $_SESSION['s_state'] ?? '';
+$full_billing_address = $_SESSION['full_billing_address'] ?? '';
 
-    // --- Shipping Zone Query ---
-    $query = "SELECT shipping_charge base_shipping_charge, free_shipping
+// --- Shipping Zone Query ---
+$query = "SELECT shipping_charge base_shipping_charge, free_shipping
           FROM tbl_shipping_zone
           WHERE state_name = '$s_state'";
-    $result               = mysqli_query($con, $query);
-    $info                 = mysqli_fetch_assoc($result);
-    $base_shipping_charge = $info['base_shipping_charge'] ?? 0;
-    // $free_shipping = $info['free_shipping'] ?? 0;
+$result               = mysqli_query($con, $query);
+$info                 = mysqli_fetch_assoc($result);
+$base_shipping_charge = $info['base_shipping_charge'] ?? 0;
+// $free_shipping = $info['free_shipping'] ?? 0;
 
-    $base_shipping_charge  = (float) $base_shipping_charge;
-    $shipping_charge       = isset($_POST['shipping_charge']) ? (float) $_POST['shipping_charge'] : 0;
-    $total_shipping_charge = $base_shipping_charge + $shipping_charge;
+$base_shipping_charge  = (float) $base_shipping_charge;
+$shipping_charge       = isset($_POST['shipping_charge']) ? (float) $_POST['shipping_charge'] : 0;
+$total_shipping_charge = $base_shipping_charge + $shipping_charge;
 
 ?>
 
 <?php
-    $b_full_name = $b_contact_no = $b_email = $b_building_no = $b_street_address = $b_landmark = $b_town = $b_district = $b_state = $b_postcode = $b_gst_no = $b_AddressType = "";
-    $s_full_name = $s_contact_no = $s_email = $s_building_no = $s_street_address = $s_landmark = $s_town = $s_district = $s_state = $s_postcode = $s_gst_no = $s_AddressType = "";
+$b_full_name = $b_contact_no = $b_email = $b_building_no = $b_street_address = $b_landmark = $b_town = $b_district = $b_state = $b_postcode = $b_gst_no = $b_AddressType = "";
+$s_full_name = $s_contact_no = $s_email = $s_building_no = $s_street_address = $s_landmark = $s_town = $s_district = $s_state = $s_postcode = $s_gst_no = $s_AddressType = "";
 
-    $is_b_address_exist = 0;
-    $is_s_address_exist = 0;
+$is_b_address_exist = 0;
+$is_s_address_exist = 0;
 
-    if ($user_id) {
+if ($user_id) {
     // Billing Address
     $query_b  = "SELECT * FROM tbl_billing_address WHERE user_id = '$user_id' LIMIT 1";
     $result_b = mysqli_query($con, $query_b);
@@ -157,26 +163,25 @@
         // Also update the variable so it's available right now
         $s_state = $_SESSION['s_state'];
     }
+}
 
+// Auto-fill from user profile if missing
+if (isset($_SESSION['user_id'])) {
+    $logged_in_user_id = $_SESSION['user_id'];
+    $u_q = mysqli_query($con, "SELECT full_name, email, phone FROM tbl_user WHERE id = '$logged_in_user_id' LIMIT 1");
+    if ($u_q && mysqli_num_rows($u_q) > 0) {
+        $u_data = mysqli_fetch_assoc($u_q);
+        if (empty($b_email)) $b_email = $u_data['email'] ?? '';
+        if (empty($b_full_name)) $b_full_name = $u_data['full_name'] ?? '';
+        if (empty($b_contact_no)) $b_contact_no = $u_data['phone'] ?? '';
+
+        if (empty($s_email)) $s_email = $u_data['email'] ?? '';
+        if (empty($s_full_name)) $s_full_name = $u_data['full_name'] ?? '';
+        if (empty($s_contact_no)) $s_contact_no = $u_data['phone'] ?? '';
     }
+}
 
-    // Auto-fill from user profile if missing
-    if (isset($_SESSION['user_id'])) {
-        $logged_in_user_id = $_SESSION['user_id'];
-        $u_q = mysqli_query($con, "SELECT full_name, email, phone FROM tbl_user WHERE id = '$logged_in_user_id' LIMIT 1");
-        if ($u_q && mysqli_num_rows($u_q) > 0) {
-            $u_data = mysqli_fetch_assoc($u_q);
-            if (empty($b_email)) $b_email = $u_data['email'] ?? '';
-            if (empty($b_full_name)) $b_full_name = $u_data['full_name'] ?? '';
-            if (empty($b_contact_no)) $b_contact_no = $u_data['phone'] ?? '';
-            
-            if (empty($s_email)) $s_email = $u_data['email'] ?? '';
-            if (empty($s_full_name)) $s_full_name = $u_data['full_name'] ?? '';
-            if (empty($s_contact_no)) $s_contact_no = $u_data['phone'] ?? '';
-        }
-    }
-
-    if (isset($_POST['submit_address'])) {
+if (isset($_POST['submit_address'])) {
     $b_full_name      = mysqli_real_escape_string($con, $_POST['b_full_name']);
     $b_contact_no     = mysqli_real_escape_string($con, $_POST['b_contact_no']);
     $b_email          = mysqli_real_escape_string($con, $_POST['b_email']);
@@ -246,24 +251,24 @@
     $result_s = mysqli_query($con, $sql_s);
 
     echo "<script>window.location = 'checkout.php';</script>";
-    }
+}
 ?>
 
 <?php
-    // ✅ Get coupon amount from session
-    // Default coupon values
-    $coupon_amount = 0;
-    $coupon_code   = "";
+// ✅ Get coupon amount from session
+// Default coupon values
+$coupon_amount = 0;
+$coupon_code   = "";
 
-    // Use existing coupon session data if present
-    if (isset($_SESSION['coupon']) && is_array($_SESSION['coupon'])) {
+// Use existing coupon session data if present
+if (isset($_SESSION['coupon']) && is_array($_SESSION['coupon'])) {
     $coupon_code   = $_SESSION['coupon']['code'] ?? '';
     $coupon_amount = $_SESSION['coupon']['amount'] ?? 0;
-    }
+}
 ?>
 
 <?php
-    if (isset($_POST['checkout_place_order'])) {
+if (isset($_POST['checkout_place_order'])) {
     // Check if billing address exists
     $query_b  = "SELECT * FROM tbl_billing_address WHERE user_id = '$user_id'";
     $result_b = mysqli_query($con, $query_b);
@@ -338,7 +343,7 @@
     $insertOrderQuery = "INSERT INTO tbl_order (user_id, order_id, p_id, p_name, p_color, p_size, p_price, p_actual_price, p_gst, gst_Amount, igst, igst_Amount, cgst, cgst_Amount, sgst, sgst_Amount, p_image, p_quantity, no_of_item, weight, unit, sku, applied_coupon, commission_user_id, b_name, b_phone, b_email, b_building, b_street, b_landmark, b_town, b_district, b_state, b_pincode, b_gst, s_name, s_phone, s_email, s_building, s_street, s_landmark, s_town, s_district, s_state, s_pincode, s_gst, billing_address, shipping_address, order_status, order_date) VALUES ";
 
     $coupon_p_id   = $_SESSION['coupon']['p_id'] ?? 0;
-    
+
     // Calculate total eligible amount for proportional coupon distribution
     $eligible_total = 0;
     $query_cart_calc  = "SELECT p_id, p_actual_price, no_of_item FROM tbl_cart WHERE user_id = '$user_id' AND is_ordered = '0'";
@@ -417,7 +422,7 @@
             $stmt_cp = $pdo->prepare("SELECT percentage FROM tbl_user_coupon WHERE user_id = ? AND (p_id = ? OR p_id = 0 OR p_id IS NULL) ORDER BY p_id DESC LIMIT 1");
             $stmt_cp->execute([$item_commission_user_id, $p_id]);
             $row_cp = $stmt_cp->fetch(PDO::FETCH_ASSOC);
-            
+
             // Fallback: If no strict match, just use any commission percentage assigned to this seller
             if (!$row_cp) {
                 $stmt_cp2 = $pdo->prepare("SELECT percentage FROM tbl_user_coupon WHERE user_id = ? ORDER BY id DESC LIMIT 1");
@@ -427,7 +432,7 @@
 
             if ($row_cp) {
                 $commission_perc = $row_cp['percentage'];
-                
+
                 $item_total = $p_actual_price * $no_of_item;
                 $item_discount = 0;
                 if ($coupon_amount > 0 && $eligible_total > 0 && ($coupon_p_id == 0 || $coupon_p_id == $p_id)) {
@@ -502,7 +507,7 @@
     } else {
         echo "Failed to insert coupon code into payment records.";
     }
-    }
+}
 ?>
 
 <?php include "include/header.php"; ?>
@@ -535,7 +540,7 @@
         <div class="row">
             <!-- Checkout Form -->
             <div class="col-lg-8 order-2 order-md-1 mt-5 mt-lg-0"">
-                <form method="post" class="checkout" action="" autocomplete="off" id="myForm" novalidate>
+                <form method=" post" class="checkout" action="" autocomplete="off" id="myForm" novalidate>
                 <div class="row">
                     <!-- Billing Details -->
 
@@ -612,25 +617,25 @@
                                         <label>State <span class="text-danger">*</span></label>
 
                                         <?php
-                                            if ($b_state == "") {
-                                                $b_state_text = "Select State";
-                                                $b_state_val  = "";
-                                            } else {
-                                                $b_state_text = $b_state;
-                                                $b_state_val  = $b_state;
-                                            }
+                                        if ($b_state == "") {
+                                            $b_state_text = "Select State";
+                                            $b_state_val  = "";
+                                        } else {
+                                            $b_state_text = $b_state;
+                                            $b_state_val  = $b_state;
+                                        }
                                         ?>
                                         <select name="b_state" id="b_state" class="form-control"
                                             style="padding:5px 15px;" required>
                                             <option value="<?php echo $b_state_val; ?>"><?php echo $b_state_text; ?></option>
                                             <?php
-                                                $query_b_states  = "select * from tbl_shipping_zone ORDER BY state_name ASC";
-                                                $result_b_states = mysqli_query($con, $query_b_states);
-                                                while ($info_b_states = mysqli_fetch_assoc($result_b_states)) {
-                                                ?>
+                                            $query_b_states  = "select * from tbl_shipping_zone ORDER BY state_name ASC";
+                                            $result_b_states = mysqli_query($con, $query_b_states);
+                                            while ($info_b_states = mysqli_fetch_assoc($result_b_states)) {
+                                            ?>
                                                 <option value="<?php echo $info_b_states['state_name']; ?>">
                                                     <?php echo $info_b_states['state_name']; ?></option>
-                                            <?php }?>
+                                            <?php } ?>
                                         </select>
                                         <div class="invalid-feedback">
                                             Please enter your State.
@@ -712,13 +717,13 @@
                                         <select name="s_state" class="form-control" style="padding:5px 15px;" required>
                                             <option value="<?php echo $s_state; ?>"><?php echo $s_state ?: 'Select State'; ?></option>
                                             <?php
-                                                $query_s_states  = "SELECT * FROM tbl_shipping_zone ORDER BY state_name ASC";
-                                                $result_s_states = mysqli_query($con, $query_s_states);
-                                                while ($state = mysqli_fetch_assoc($result_s_states)) {
-                                                ?>
+                                            $query_s_states  = "SELECT * FROM tbl_shipping_zone ORDER BY state_name ASC";
+                                            $result_s_states = mysqli_query($con, $query_s_states);
+                                            while ($state = mysqli_fetch_assoc($result_s_states)) {
+                                            ?>
                                                 <option value="<?php echo $state['state_name']; ?>"><?php echo $state['state_name']; ?>
                                                 </option>
-                                            <?php }?>
+                                            <?php } ?>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -748,7 +753,7 @@
 
                 <!-- Optional: Toggle shipping address -->
                 <script>
-                    document.getElementById('shipDiff').addEventListener('change', function () {
+                    document.getElementById('shipDiff').addEventListener('change', function() {
                         const shippingBox = document.getElementById('shippingAddress');
                         shippingBox.style.display = this.checked ? 'block' : 'none';
                     });
@@ -761,16 +766,16 @@
                     <form method="post" class="checkout" action="" autocomplete="off">
                         <h3><i class="fas fa-shopping-cart me-2"></i>Order Summary</h3>
                         <?php
-                            $count           = 0;
-                            $total           = 0;
-                            $gst             = 0;
-                            $sub_total       = 0;
-                            $shipping_charge = 0;
-                            $shipping_charge = 0;
-                            $p_total_weight  = 0;
-                            $query_cart      = "select * from tbl_cart where user_id = '$user_id' and is_ordered = '0'";
-                            $result_cart     = mysqli_query($con, $query_cart);
-                        while ($data_cart = mysqli_fetch_assoc($result_cart)) {?>
+                        $count           = 0;
+                        $total           = 0;
+                        $gst             = 0;
+                        $sub_total       = 0;
+                        $shipping_charge = 0;
+                        $shipping_charge = 0;
+                        $p_total_weight  = 0;
+                        $query_cart      = "select * from tbl_cart where user_id = '$user_id' and is_ordered = '0'";
+                        $result_cart     = mysqli_query($con, $query_cart);
+                        while ($data_cart = mysqli_fetch_assoc($result_cart)) { ?>
                             <div class="cart-item">
                                 <img src="<?php echo $base_url; ?>assets/img/product-detail/<?php echo $data_cart['p_image']; ?>"
                                     alt="<?php echo $data_cart['p_name']; ?>" class="cart-item-img">
@@ -780,49 +785,50 @@
                                     <div class="cart-item-quantity">QTY : <?php echo $data_cart['no_of_item']; ?></div>
                                 </div>
                             </div>
-                            <?php
-                                $total     += $data_cart['p_price'] * $data_cart['no_of_item'];
-                                    $gst       += $data_cart['p_gst'] * $data_cart['no_of_item'];
-                                    $sub_total += $data_cart['p_actual_price'] * $data_cart['no_of_item'];
+                        <?php
+                            $total     += $data_cart['p_price'] * $data_cart['no_of_item'];
+                            $gst       += $data_cart['p_gst'] * $data_cart['no_of_item'];
+                            $sub_total += $data_cart['p_actual_price'] * $data_cart['no_of_item'];
 
-                                    // $p_weight = $data_cart['weight'] * $data_cart['no_of_item'];
-                                    $p_unit = $data_cart['unit'];
-                                    // echo "<script>alert('$p_unit')</script>";
-                                    // if (trim($p_unit) == "gm") {
-                                    //     $p_total_weight += $p_weight;
-                                    // } else {
-                                    //     $p_total_weight += $p_weight;
-                                    //     // echo "<script>alert('p_unit')</script>";
-                                    // }
-                                    $count++;}
+                            // $p_weight = $data_cart['weight'] * $data_cart['no_of_item'];
+                            $p_unit = $data_cart['unit'];
+                            // echo "<script>alert('$p_unit')</script>";
+                            // if (trim($p_unit) == "gm") {
+                            //     $p_total_weight += $p_weight;
+                            // } else {
+                            //     $p_total_weight += $p_weight;
+                            //     // echo "<script>alert('p_unit')</script>";
+                            // }
+                            $count++;
+                        }
 
-                                // if ($p_total_weight < 500) {
-                                //     $shipping_charge = 0;
-                                // } else if ($p_total_weight >= 500 && $p_total_weight < 1000) {
-                                //     $shipping_charge = 30;
-                                // } else if ($p_total_weight >= 1000 && $p_total_weight < 2000) {
-                                //     $shipping_charge = 60;
-                                // } else if ($p_total_weight >= 2000 && $p_total_weight < 3000) {
-                                //     $shipping_charge = 90;
-                                // } else if ($p_total_weight >= 3000 && $p_total_weight < 5000) {
-                                //     $shipping_charge = 120;
-                                // } else if ($p_total_weight >= 5000) {
-                                //     $shipping_charge = 120;
-                                // }
-                                // $total_shipping_charge = $base_shipping_charge + $shipping_charge;
-                                // if ($total > $free_shipping)
-                                //     $total_shipping_charge = 0;
+                        // if ($p_total_weight < 500) {
+                        //     $shipping_charge = 0;
+                        // } else if ($p_total_weight >= 500 && $p_total_weight < 1000) {
+                        //     $shipping_charge = 30;
+                        // } else if ($p_total_weight >= 1000 && $p_total_weight < 2000) {
+                        //     $shipping_charge = 60;
+                        // } else if ($p_total_weight >= 2000 && $p_total_weight < 3000) {
+                        //     $shipping_charge = 90;
+                        // } else if ($p_total_weight >= 3000 && $p_total_weight < 5000) {
+                        //     $shipping_charge = 120;
+                        // } else if ($p_total_weight >= 5000) {
+                        //     $shipping_charge = 120;
+                        // }
+                        // $total_shipping_charge = $base_shipping_charge + $shipping_charge;
+                        // if ($total > $free_shipping)
+                        //     $total_shipping_charge = 0;
 
-                                $grand_total = $sub_total - $coupon_amount;
-                                $grand_total = $grand_total + $total_shipping_charge;
+                        $grand_total = $sub_total - $coupon_amount;
+                        $grand_total = $grand_total + $total_shipping_charge;
 
-                                $sub_total             = number_format((float) $sub_total, 2, '.', '');
-                                $gst                   = number_format((float) $gst, 2, '.', '');
-                                $coupon_amount         = number_format((float) $coupon_amount, 2, '.', '');
-                                $total_shipping_charge = number_format((float) $total_shipping_charge, 2, '.', '');
-                                $total                 = number_format((float) $total, 2, '.', '');
-                                $grand_total           = number_format((float) $grand_total, 2, '.', '');
-                            ?>
+                        $sub_total             = number_format((float) $sub_total, 2, '.', '');
+                        $gst                   = number_format((float) $gst, 2, '.', '');
+                        $coupon_amount         = number_format((float) $coupon_amount, 2, '.', '');
+                        $total_shipping_charge = number_format((float) $total_shipping_charge, 2, '.', '');
+                        $total                 = number_format((float) $total, 2, '.', '');
+                        $grand_total           = number_format((float) $grand_total, 2, '.', '');
+                        ?>
 
                         <div class="order-summary">
                             <!-- Totals -->
@@ -863,11 +869,11 @@
                                             id="payment_online" required checked>
                                         <label for="payment_online" class="ms-2">Online Payment (PayU)</label>
                                     </li>
-                                     <li class="payment-method">
+                                    <!-- <li class="payment-method">
                                         <input type="radio" class="input-radio" name="payment_method" value="cod"
                                             id="payment_cod" required>
                                         <label for="payment_cod" class="ms-2">Cash On Delivery</label>
-                                    </li>
+                                    </li> -->
                                 </ul>
                                 <button type="submit" name="checkout_place_order" id="placeOrderBtn"
                                     class="btn btn-cart mt-3 w-100">Proceed to Payment</button>
@@ -878,10 +884,10 @@
                                 <h6><i class="fas fa-truck me-2"></i>Shipping Information</h6>
                                 <p class="text-muted mb-2">Estimated delivery: 3–5 business days</p>
                                 <!--<?php if (! empty($free_shipping)): ?>-->
-                                    <!--<p class="text-muted mb-0">Free shipping on orders above ₹<?php echo $free_shipping ?></p>-->
-                                    <!--<?php else: ?>-->
-                                    <!--    <p class="text-muted mb-0">Select your address to see free shipping eligibility</p>-->
-                                    <!--<?php endif; ?>-->
+                                <!--<p class="text-muted mb-0">Free shipping on orders above ₹<?php echo $free_shipping ?></p>-->
+                                <!--<?php else: ?>-->
+                                <!--    <p class="text-muted mb-0">Select your address to see free shipping eligibility</p>-->
+                                <!--<?php endif; ?>-->
                             </div>
 
                             <!-- Return Policy -->
@@ -899,7 +905,7 @@
 
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('myForm');
 
         const shipDiff = document.getElementById('shipDiff'); // optional toggle
@@ -918,18 +924,18 @@
 </script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('myForm');
 
         // Real-time validation for all required fields
-        form.querySelectorAll('input[required], select[required]').forEach(function (input) {
-            input.addEventListener('input', function () {
+        form.querySelectorAll('input[required], select[required]').forEach(function(input) {
+            input.addEventListener('input', function() {
                 if (input.value.trim()) {
                     input.classList.remove('is-invalid');
                 }
             });
 
-            input.addEventListener('change', function () {
+            input.addEventListener('change', function() {
                 if (input.value.trim()) {
                     input.classList.remove('is-invalid');
                 }
@@ -937,11 +943,11 @@
         });
 
         // Form submission validation
-        form.addEventListener('submit', function (e) {
+        form.addEventListener('submit', function(e) {
             let valid = true;
 
             // Loop through all required fields
-            form.querySelectorAll('input[required], select[required]').forEach(function (input) {
+            form.querySelectorAll('input[required], select[required]').forEach(function(input) {
                 if (!input.value.trim()) {
                     input.classList.add('is-invalid');
                     if (valid) input.focus(); // focus first invalid field
@@ -960,20 +966,23 @@
 </script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const placeOrderBtn = document.getElementById('placeOrderBtn');
         const form = document.getElementById('myForm');
 
         if (!placeOrderBtn || !form) return;
 
-        placeOrderBtn.addEventListener('click', function (event) {
+        placeOrderBtn.addEventListener('click', function(event) {
             const allRequired = Array.from(form.querySelectorAll('input[required], select[required]'));
             const firstEmpty = allRequired.find(input => input.value.trim() === '');
 
             if (firstEmpty) {
                 event.preventDefault(); // Stop the order from being placed
                 alert('Please fill in all required fields.');
-                firstEmpty.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstEmpty.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
                 firstEmpty.focus();
             }
         });
@@ -1018,7 +1027,7 @@
         validateOrderButton();
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         // Sync billing to shipping when typing
         document.querySelectorAll("[name^='b_']").forEach(el => {
             el.addEventListener('input', copyBillingToShipping);
@@ -1028,7 +1037,7 @@
         // Toggle shipping address visibility
         const shipDiff = document.getElementById('shipDiff');
         if (shipDiff) {
-            shipDiff.addEventListener('change', function () {
+            shipDiff.addEventListener('change', function() {
                 const shippingDiv = document.getElementById('shippingAddress');
                 if (this.checked) {
                     shippingDiv.style.display = 'block';

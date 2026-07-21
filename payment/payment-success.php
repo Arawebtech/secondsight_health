@@ -29,10 +29,17 @@ if ($calculated_hash !== $posted_hash) {
 }
 
 /* ---------- Step 2: Get payment record ---------- */
-$query = "SELECT * FROM tbl_payment WHERE order_id = '$txnid' LIMIT 1";
+// Extract the base order_id from txnid if it contains an underscore suffix
+$base_order_id = $txnid;
+if (strpos($txnid, '_') !== false) {
+    $parts = explode('_', $txnid);
+    $base_order_id = $parts[0];
+}
+
+$query = "SELECT * FROM tbl_payment WHERE order_id = '$base_order_id' LIMIT 1";
 $result = mysqli_query($con, $query);
 if (!$result || mysqli_num_rows($result) == 0) {
-    die("Payment record not found for txnid $txnid");
+    die("Payment record not found for order ID $base_order_id (txnid: $txnid)");
 }
 $data_pay = mysqli_fetch_assoc($result);
 

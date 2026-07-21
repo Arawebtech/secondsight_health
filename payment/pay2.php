@@ -32,8 +32,10 @@ $firstname = $user['name'] ?? "Customer";
 $email     = $user['email'] ?? "customer@example.com";
 $phone     = $user['phone'] ?? "9999999999";
 
-// Use order_id as txnid (max 20 chars)
-$txnid = substr($order_id, 0, 20);
+// Ensure txnid is unique for every transaction attempt by appending a timestamp,
+// while keeping the total length within PayU's 25-character limit.
+$txnid = substr($order_id, 0, 14) . '_' . time();
+
 
 // Safer productinfo
 $productinfo = json_encode(["name" => "Order #".$order_id]);

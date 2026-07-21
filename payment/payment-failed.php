@@ -29,7 +29,14 @@ if ($calculated_hash !== $posted_hash) {
 }
 
 /* ---------- Step 2: Get payment record ---------- */
-$query = "SELECT * FROM tbl_payment WHERE order_id = '$txnid' LIMIT 1";
+// Extract the base order_id from txnid if it contains an underscore suffix
+$base_order_id = $txnid;
+if (strpos($txnid, '_') !== false) {
+    $parts = explode('_', $txnid);
+    $base_order_id = $parts[0];
+}
+
+$query = "SELECT * FROM tbl_payment WHERE order_id = '$base_order_id' LIMIT 1";
 $result = mysqli_query($con, $query);
 if ($result && mysqli_num_rows($result) > 0) {
     $data_pay = mysqli_fetch_assoc($result);
@@ -45,14 +52,15 @@ if ($result && mysqli_num_rows($result) > 0) {
 }
 
 /* ---------- Step 4: Notify admin ---------- */
+$display_order_id = $order_id ?? $base_order_id;
 $body = "Payment Failed!\r\n\r\n";
-$body .= "Order ID: #{$txnid}\r\n";
+$body .= "Order ID: #{$display_order_id}\r\n";
 $body .= "User: {$firstname} ({$email})\r\n";
 $body .= "Status: {$status}\r\n";
 $body .= "Amount: ₹{$amount}\r\n";
 $body .= "Transaction ID: {$transaction_id}\r\n";
 
-$subject = "Payment Failed - Order #{$txnid}";
+$subject = "Payment Failed - Order #{$display_order_id}";
 $headers  = "From: no-reply@arawebtechnologies.com\r\n";
 $headers .= "Reply-To: smo@arawebtechnologies.com\r\n";
 $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
@@ -105,7 +113,7 @@ $base_url = "https://ssfhealth.in/";
                                         <div class="box-form-login">
                                             <h2 class="register">Your Payment Failed</h2>
                                             <p>Unfortunately, we could not process your payment.</p>
-                                            <p>Order ID: <strong><?= htmlspecialchars($txnid); ?></strong></p>
+                                            <p>Order ID: <strong><?= htmlspecialchars($order_id ?? $base_order_id); ?></strong></p>
                                             <p>Please try again or contact our support if the amount was deducted.</p>
                                             <a href="<?= $base_url; ?>checkout.php" class="btn btn-cart mt-3">Retry Payment</a>
                                             <a href="<?= $base_url; ?>" class="btn btn-cart mt-3">Go Back to Home</a>
